@@ -75,11 +75,18 @@ function App() {
 
       try {
         const resp = await fetch(
-          "http://localhost:8000/api/metricas/medicamentos-mas-recetados/"
+          "http://localhost:8000/api/metricas/medicamentos-mas-recetados/",
+          {
+            headers: {
+              "X-Empleado-Id": empleado.id,          
+            },
+          }
         );
+
         if (!resp.ok) {
           throw new Error(`Error HTTP: ${resp.status}`);
         }
+
         const data = await resp.json();
         setDatos(data);
       } catch (err) {
@@ -91,6 +98,7 @@ function App() {
 
     fetchMetricas();
   }, [empleado]);
+
 
   // Preparar datos para la gráfica
   const labels = datos.map((item) => `${item.nom_med} (${item.sede})`);

@@ -7,6 +7,8 @@ from django.utils import timezone
 from datetime import timedelta
 from django.db.models import Count
 from django.contrib.auth.hashers import check_password
+from rest_framework.permissions import AllowAny
+from .permissions import EsEmpleadoAutenticado
 
 from .models import (
     SedeHospitalaria,
@@ -65,8 +67,13 @@ class MedicamentosMasRecetadosView(APIView):
     Devuelve los medicamentos más recetados por sede en el último mes.
     Agrupa por sede y medicamento, ordenado por total de prescripciones.
     """
+    permission_classes = [EsEmpleadoAutenticado]
 
     def get(self, request):
+        from django.utils import timezone
+        from datetime import timedelta
+        from django.db.models import Count
+
         hace_un_mes = timezone.now() - timedelta(days=30)
 
         queryset = (
@@ -81,7 +88,6 @@ class MedicamentosMasRecetadosView(APIView):
             .order_by("-total_prescripciones")
         )
 
-        # Renombrar claves para que la respuesta quede más clara
         data = [
             {
                 "sede_id": item["historia__sede__id"],
@@ -94,6 +100,7 @@ class MedicamentosMasRecetadosView(APIView):
         ]
 
         return Response(data, status=status.HTTP_200_OK)
+
     
 class AuthLoginView(APIView):
     
