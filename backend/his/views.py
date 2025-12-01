@@ -3,12 +3,11 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.views import APIView
 from rest_framework import status
+
 from django.utils import timezone
 from datetime import timedelta
 from django.db.models import Count
 from django.contrib.auth.hashers import check_password
-from rest_framework.permissions import AllowAny
-from .permissions import EsEmpleadoAutenticado
 
 from .models import (
     SedeHospitalaria,
@@ -26,26 +25,34 @@ from .serializers import (
     CitaSerializer,
     EmpleadoPublicSerializer,
 )
+from .permissions import (
+    PermisoPorRolModelo,
+    EsEmpleadoAutenticado,
+)
 
 
 class SedeHospitalariaViewSet(viewsets.ModelViewSet):
     queryset = SedeHospitalaria.objects.all()
     serializer_class = SedeHospitalariaSerializer
+    permission_classes = [PermisoPorRolModelo]
 
 
 class DepartamentoViewSet(viewsets.ModelViewSet):
     queryset = Departamento.objects.select_related("sede").all()
     serializer_class = DepartamentoSerializer
+    permission_classes = [PermisoPorRolModelo]
 
 
 class PacienteViewSet(viewsets.ModelViewSet):
     queryset = Paciente.objects.all()
     serializer_class = PacienteSerializer
+    permission_classes = [PermisoPorRolModelo]
 
 
 class CitaViewSet(viewsets.ModelViewSet):
     queryset = Cita.objects.select_related("paciente", "empleado", "depto").all()
     serializer_class = CitaSerializer
+    permission_classes = [PermisoPorRolModelo]
 
     # Ejemplo de acción personalizada básica (luego podemos hacer métricas)
     @action(detail=False, methods=["get"])
