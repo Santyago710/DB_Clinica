@@ -4,6 +4,7 @@ from .models import (
     Departamento,
     Paciente,
     Cita,
+    Empleado
 )
 
 
@@ -36,3 +37,10 @@ class CitaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Cita
         fields = "__all__"
+
+class EmpleadoPublicSerializer(serializers.ModelSerializer):
+    depto = DepartamentoSerializer(read_only=True)
+
+    class Meta:
+        model = Empleado
+        fields = ["id", "nom_emp", "correo", "rol", "cargo", "depto"]

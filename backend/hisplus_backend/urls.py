@@ -7,7 +7,8 @@ from his.views import (
     DepartamentoViewSet,
     PacienteViewSet,
     CitaViewSet,
-    MedicamentosMasRecetadosView,  
+    MedicamentosMasRecetadosView,
+    AuthLoginView,  
 )
 
 
@@ -25,4 +26,10 @@ urlpatterns = [
         MedicamentosMasRecetadosView.as_view(),
         name="medicamentos-mas-recetados",
     ),
+    path(
+        "api/auth/login/",
+        AuthLoginView.as_view(),
+        name="auth-login",
+    ),
 ]
+

@@ -6,6 +6,7 @@ from rest_framework import status
 from django.utils import timezone
 from datetime import timedelta
 from django.db.models import Count
+from django.contrib.auth.hashers import check_password
 
 from .models import (
     SedeHospitalaria,
@@ -13,13 +14,15 @@ from .models import (
     Paciente,
     Cita,
     Prescripcion,          
-    Medicamento,           
+    Medicamento,
+    Empleado,           
 )
 from .serializers import (
     SedeHospitalariaSerializer,
     DepartamentoSerializer,
     PacienteSerializer,
     CitaSerializer,
+    EmpleadoPublicSerializer,
 )
 
 
@@ -91,4 +94,48 @@ class MedicamentosMasRecetadosView(APIView):
         ]
 
         return Response(data, status=status.HTTP_200_OK)
+    
+class AuthLoginView(APIView):
+    
+
+    def post(self, request):
+        correo = request.data.get("correo")
+        password = request.data.get("password")
+
+        if not correo or not password:
+            return Response(
+                {"detail": "Debe enviar correo y password."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            empleado = Empleado.objects.select_related("depto", "depto__sede").get(correo=correo)
+        except Empleado.DoesNotExist:
+            return Response(
+                {"detail": "Credenciales inválidas."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not empleado.hash_contra:
+            return Response(
+                {"detail": "El usuario no tiene contraseña configurada."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not check_password(password, empleado.hash_contra):
+            return Response(
+                {"detail": "Credenciales inválidas."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Si todo OK, devolvemos los datos públicos del empleado
+        serializer = EmpleadoPublicSerializer(empleado)
+        return Response(
+            {
+                "detail": "Login exitoso.",
+                "empleado": serializer.data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
 

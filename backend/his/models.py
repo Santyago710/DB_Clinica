@@ -1,4 +1,6 @@
 from django.db import models
+from django.contrib.auth.hashers import make_password
+
 
 class SedeHospitalaria(models.Model):
     nom_sede = models.CharField(max_length=100)
@@ -45,6 +47,11 @@ class Empleado(models.Model):
 
     def __str__(self):
         return f"{self.nom_emp} ({self.rol})"
+    def save(self, *args, **kwargs):
+        
+        if self.hash_contra and not str(self.hash_contra).startswith("pbkdf2_"):
+            self.hash_contra = make_password(self.hash_contra)
+        super().save(*args, **kwargs)
 
 
 class Paciente(models.Model):
