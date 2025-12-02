@@ -20,6 +20,9 @@ function App() {
   const [loginError, setLoginError] = useState(null);
   const [loginLoading, setLoginLoading] = useState(false);
 
+  // Estado de navegación
+  const [paginaActual, setPaginaActual] = useState("inicio");
+
   // Estado de registro
   const [mostrarRegistro, setMostrarRegistro] = useState(false);
   const [formRegistro, setFormRegistro] = useState({
@@ -241,6 +244,37 @@ function App() {
   const handleLogout = () => {
     setEmpleado(null);
     setDatos([]);
+    setPaginaActual("inicio");
+  };
+
+  // Definir opciones de menú por rol
+  const getMenuPorRol = () => {
+    const rolMenus = {
+      ADMIN: [
+        { id: "inicio", label: "Inicio", icon: "🏠" },
+        { id: "metricas", label: "Métricas", icon: "📊" },
+        { id: "empleados", label: "Gestionar Empleados", icon: "👥" },
+        { id: "departamentos", label: "Departamentos", icon: "🏢" },
+        { id: "pacientes", label: "Pacientes", icon: "🏥" },
+      ],
+      MEDICO: [
+        { id: "inicio", label: "Inicio", icon: "🏠" },
+        { id: "pacientes", label: "Mis Pacientes", icon: "🏥" },
+        { id: "citas", label: "Citas", icon: "📅" },
+        { id: "metricas", label: "Reportes", icon: "📊" },
+      ],
+      ENFERMERO: [
+        { id: "inicio", label: "Inicio", icon: "🏠" },
+        { id: "pacientes", label: "Pacientes", icon: "🏥" },
+        { id: "citas", label: "Citas", icon: "📅" },
+      ],
+      ADM: [
+        { id: "inicio", label: "Inicio", icon: "🏠" },
+        { id: "pacientes", label: "Pacientes", icon: "🏥" },
+        { id: "citas", label: "Citas", icon: "📅" },
+      ],
+    };
+    return rolMenus[empleado?.rol] || [];
   };
 
   return (
@@ -487,87 +521,192 @@ function App() {
 
       {/* Si SÍ está logueado, mostramos el dashboard */}
       {empleado && (
-        <>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: "1rem",
-            }}
-          >
-            <div>
-              <h1>Dashboard HIS+</h1>
-              <p>
-                Sesión iniciada como: <strong>{empleado.nom_emp}</strong> (
-                {empleado.rol}) - {empleado.depto?.nom_dept} /{" "}
-                {empleado.depto?.sede?.nom_sede}
+        <div style={{ display: "flex", minHeight: "100vh", gap: "2rem" }}>
+          {/* Sidebar de navegación */}
+          <nav style={navbarStyle}>
+            <div style={{ marginBottom: "2rem" }}>
+              <h2 style={{ color: "#fff", margin: "0 0 0.5rem 0" }}>HIS+</h2>
+              <p style={{ color: "#ddd", margin: 0, fontSize: "0.9rem" }}>
+                {empleado.nom_emp}
+              </p>
+              <p style={{ color: "#aaa", margin: "0.25rem 0 0 0", fontSize: "0.8rem" }}>
+                {empleado.rol}
               </p>
             </div>
+
+            <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+              {getMenuPorRol().map((item) => (
+                <li key={item.id}>
+                  <button
+                    onClick={() => setPaginaActual(item.id)}
+                    style={{
+                      ...menuItemStyle,
+                      backgroundColor:
+                        paginaActual === item.id ? "#1565c0" : "transparent",
+                    }}
+                  >
+                    <span style={{ marginRight: "0.5rem" }}>{item.icon}</span>
+                    {item.label}
+                  </button>
+                </li>
+              ))}
+            </ul>
+
             <button
               onClick={handleLogout}
               style={{
-                padding: "0.5rem 1rem",
-                border: "none",
-                cursor: "pointer",
+                ...menuItemStyle,
                 backgroundColor: "#d32f2f",
-                color: "#fff",
-                borderRadius: "4px",
-                height: "fit-content",
+                marginTop: "auto",
+                width: "100%",
               }}
             >
-              Cerrar sesión
+              🚪 Cerrar sesión
             </button>
-          </div>
+          </nav>
 
-          <h2>Métrica: Medicamentos más recetados (último mes)</h2>
-
-          {cargandoMetricas && <p>Cargando métricas...</p>}
-
-          {errorMetricas && (
-            <p style={{ color: "red" }}>
-              Error al cargar métricas: {errorMetricas}
-            </p>
-          )}
-
-          {!cargandoMetricas && !errorMetricas && datos.length === 0 && (
-            <p>No hay datos de prescripciones en el último mes.</p>
-          )}
-
-          {!cargandoMetricas && !errorMetricas && datos.length > 0 && (
-            <>
-              <div style={{ maxWidth: "800px", marginTop: "2rem" }}>
-                <Bar data={chartData} options={chartOptions} />
+          {/* Contenido principal */}
+          <div style={{ flex: 1, paddingRight: "2rem" }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "2rem",
+                paddingBottom: "1rem",
+                borderBottom: "2px solid #ddd",
+              }}
+            >
+              <div>
+                <h1 style={{ margin: "0 0 0.5rem 0" }}>Dashboard HIS+</h1>
+                <p style={{ margin: 0, color: "#666" }}>
+                  {empleado.depto?.sede?.nom_sede} - {empleado.depto?.nom_dept}
+                </p>
               </div>
+            </div>
 
-              <h3 style={{ marginTop: "2rem" }}>Detalle en tabla</h3>
-              <table
-                style={{
-                  borderCollapse: "collapse",
-                  width: "100%",
-                  marginTop: "1rem",
-                }}
-              >
-                <thead>
-                  <tr>
-                    <th style={thStyle}>Sede</th>
-                    <th style={thStyle}>Medicamento</th>
-                    <th style={thStyle}>Total prescripciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {datos.map((item, idx) => (
-                    <tr key={idx}>
-                      <td style={tdStyle}>{item.sede}</td>
-                      <td style={tdStyle}>{item.nom_med}</td>
-                      <td style={tdStyle}>{item.total_prescripciones}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </>
-          )}
-        </>
+            {/* Página de Inicio */}
+            {paginaActual === "inicio" && (
+              <div>
+                <h2 style={{ marginBottom: "2rem" }}>
+                  Bienvenido, {empleado.nom_emp}
+                </h2>
+                <div style={gridStyle}>
+                  {getMenuPorRol()
+                    .filter((item) => item.id !== "inicio")
+                    .map((item) => (
+                      <div
+                        key={item.id}
+                        onClick={() => setPaginaActual(item.id)}
+                        style={tarjetaStyle}
+                      >
+                        <div
+                          style={{
+                            fontSize: "3rem",
+                            marginBottom: "1rem",
+                            textAlign: "center",
+                          }}
+                        >
+                          {item.icon}
+                        </div>
+                        <h3 style={{ margin: "0 0 0.5rem 0" }}>{item.label}</h3>
+                        <p style={{ margin: 0, fontSize: "0.9rem", color: "#666" }}>
+                          Acceder a {item.label.toLowerCase()}
+                        </p>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
+
+            {/* Página de Métricas */}
+            {paginaActual === "metricas" && (
+              <div>
+                <h2>Métricas: Medicamentos más recetados (último mes)</h2>
+
+                {cargandoMetricas && <p>Cargando métricas...</p>}
+
+                {errorMetricas && (
+                  <p style={{ color: "red" }}>
+                    Error al cargar métricas: {errorMetricas}
+                  </p>
+                )}
+
+                {!cargandoMetricas && !errorMetricas && datos.length === 0 && (
+                  <p>No hay datos de prescripciones en el último mes.</p>
+                )}
+
+                {!cargandoMetricas && !errorMetricas && datos.length > 0 && (
+                  <>
+                    <div style={{ maxWidth: "800px", marginTop: "2rem" }}>
+                      <Bar data={chartData} options={chartOptions} />
+                    </div>
+
+                    <h3 style={{ marginTop: "2rem" }}>Detalle en tabla</h3>
+                    <table style={tableStyle}>
+                      <thead>
+                        <tr>
+                          <th style={thStyle}>Sede</th>
+                          <th style={thStyle}>Medicamento</th>
+                          <th style={thStyle}>Total prescripciones</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {datos.map((item, idx) => (
+                          <tr key={idx}>
+                            <td style={tdStyle}>{item.sede}</td>
+                            <td style={tdStyle}>{item.nom_med}</td>
+                            <td style={tdStyle}>{item.total_prescripciones}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Página de Empleados (solo ADMIN) */}
+            {paginaActual === "empleados" && empleado.rol === "ADMIN" && (
+              <div>
+                <h2>Gestión de Empleados</h2>
+                <p style={{ color: "#666" }}>
+                  Esta sección está en desarrollo...
+                </p>
+              </div>
+            )}
+
+            {/* Página de Departamentos (solo ADMIN) */}
+            {paginaActual === "departamentos" && empleado.rol === "ADMIN" && (
+              <div>
+                <h2>Gestión de Departamentos</h2>
+                <p style={{ color: "#666" }}>
+                  Esta sección está en desarrollo...
+                </p>
+              </div>
+            )}
+
+            {/* Página de Pacientes */}
+            {paginaActual === "pacientes" && (
+              <div>
+                <h2>Gestión de Pacientes</h2>
+                <p style={{ color: "#666" }}>
+                  Esta sección está en desarrollo...
+                </p>
+              </div>
+            )}
+
+            {/* Página de Citas */}
+            {paginaActual === "citas" && (
+              <div>
+                <h2>Gestión de Citas</h2>
+                <p style={{ color: "#666" }}>
+                  Esta sección está en desarrollo...
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );
@@ -592,6 +731,56 @@ const inputStyle = {
   borderRadius: "4px",
   border: "1px solid #ccc",
   boxSizing: "border-box",
+};
+
+const navbarStyle = {
+  width: "250px",
+  backgroundColor: "#1565c0",
+  color: "#fff",
+  padding: "1.5rem 1rem",
+  display: "flex",
+  flexDirection: "column",
+  minHeight: "100vh",
+};
+
+const menuItemStyle = {
+  width: "100%",
+  padding: "0.75rem 1rem",
+  border: "none",
+  color: "#fff",
+  textAlign: "left",
+  cursor: "pointer",
+  fontSize: "1rem",
+  borderRadius: "4px",
+  marginBottom: "0.5rem",
+  transition: "background-color 0.3s",
+};
+
+const gridStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+  gap: "1.5rem",
+  marginTop: "2rem",
+};
+
+const tarjetaStyle = {
+  padding: "2rem",
+  border: "1px solid #ddd",
+  borderRadius: "8px",
+  cursor: "pointer",
+  transition: "all 0.3s",
+  backgroundColor: "#fff",
+  boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+  ":hover": {
+    boxShadow: "0 4px 8px rgba(0,0,0,0.15)",
+    transform: "translateY(-2px)",
+  },
+};
+
+const tableStyle = {
+  borderCollapse: "collapse",
+  width: "100%",
+  marginTop: "1rem",
 };
 
 export default App;
