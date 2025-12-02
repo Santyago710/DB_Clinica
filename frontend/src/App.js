@@ -20,6 +20,45 @@ function App() {
   const [loginError, setLoginError] = useState(null);
   const [loginLoading, setLoginLoading] = useState(false);
 
+  // Estado de registro
+  const [mostrarRegistro, setMostrarRegistro] = useState(false);
+  const [formRegistro, setFormRegistro] = useState({
+    nom_emp: "",
+    correo: "",
+    tel_emp: "",
+    cargo: "",
+    rol: "ADM",
+    depto_id: "",
+    hash_contra: "",
+    confirmPassword: "",
+  });
+  const [departamentos, setDepartamentos] = useState([]);
+  const [registroError, setRegistroError] = useState(null);
+  const [registroLoading, setRegistroLoading] = useState(false);
+  const [registroSuccess, setRegistroSuccess] = useState(null);
+
+  // Cargar departamentos cuando se abre el formulario de registro
+  useEffect(() => {
+    if (mostrarRegistro) {
+      const fetchDepartamentos = async () => {
+        try {
+          const resp = await fetch("http://localhost:8000/api/departamentos/", {
+            headers: {
+              "Content-Type": "application/json",
+            },
+          });
+          if (resp.ok) {
+            const data = await resp.json();
+            setDepartamentos(data.results || data);
+          }
+        } catch (err) {
+          console.error("Error al cargar departamentos:", err);
+        }
+      };
+      fetchDepartamentos();
+    }
+  }, [mostrarRegistro]);
+
   // Estado de métricas
   const [datos, setDatos] = useState([]);
   const [cargandoMetricas, setCargandoMetricas] = useState(false);
@@ -63,6 +102,79 @@ function App() {
     }
   };
 
+  // Handler de registro
+  const handleRegistroChange = (e) => {
+    const { name, value } = e.target;
+    setFormRegistro((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleRegistro = async (e) => {
+    e.preventDefault();
+    setRegistroError(null);
+    setRegistroSuccess(null);
+    setRegistroLoading(true);
+
+    // Validar que las contraseñas coincidan
+    if (formRegistro.hash_contra !== formRegistro.confirmPassword) {
+      setRegistroError("Las contraseñas no coinciden");
+      setRegistroLoading(false);
+      return;
+    }
+
+    const datosRegistro = {
+      nom_emp: formRegistro.nom_emp,
+      correo: formRegistro.correo,
+      tel_emp: formRegistro.tel_emp,
+      cargo: formRegistro.cargo,
+      rol: formRegistro.rol,
+      depto_id: parseInt(formRegistro.depto_id),
+      hash_contra: formRegistro.hash_contra,
+    };
+
+    try {
+      const resp = await fetch("http://localhost:8000/api/auth/register/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(datosRegistro),
+      });
+
+      if (!resp.ok) {
+        const dataError = await resp.json().catch(() => null);
+        const msg =
+          dataError && dataError.detail
+            ? dataError.detail
+            : `Error HTTP: ${resp.status}`;
+        throw new Error(msg);
+      }
+
+      setRegistroSuccess("¡Empleado registrado exitosamente!");
+      setFormRegistro({
+        nom_emp: "",
+        correo: "",
+        tel_emp: "",
+        cargo: "",
+        rol: "ADM",
+        depto_id: "",
+        hash_contra: "",
+        confirmPassword: "",
+      });
+
+      // Cerrar el formulario después de 2 segundos
+      setTimeout(() => {
+        setMostrarRegistro(false);
+      }, 2000);
+    } catch (err) {
+      setRegistroError(err.message);
+    } finally {
+      setRegistroLoading(false);
+    }
+  };
+
   // Cuando haya empleado logueado, cargamos las métricas
   useEffect(() => {
     if (!empleado) {
@@ -98,7 +210,6 @@ function App() {
 
     fetchMetricas();
   }, [empleado]);
-
 
   // Preparar datos para la gráfica
   const labels = datos.map((item) => `${item.nom_med} (${item.sede})`);
@@ -138,57 +249,239 @@ function App() {
       {!empleado && (
         <>
           <h1>HIS+ - Login</h1>
-          <form
-            onSubmit={handleLogin}
-            style={{
-              maxWidth: "400px",
-              display: "flex",
-              flexDirection: "column",
-              gap: "0.75rem",
-              marginTop: "1rem",
-            }}
-          >
-            <label>
-              Correo:
-              <input
-                type="email"
-                value={correo}
-                onChange={(e) => setCorreo(e.target.value)}
-                required
-                style={inputStyle}
-              />
-            </label>
+          
+          {/* Mostrar formulario de registro o login */}
+          {!mostrarRegistro ? (
+            <>
+              <form
+                onSubmit={handleLogin}
+                style={{
+                  maxWidth: "400px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "0.75rem",
+                  marginTop: "1rem",
+                }}
+              >
+                <label>
+                  Correo:
+                  <input
+                    type="email"
+                    value={correo}
+                    onChange={(e) => setCorreo(e.target.value)}
+                    required
+                    style={inputStyle}
+                  />
+                </label>
 
-            <label>
-              Contraseña:
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                style={inputStyle}
-              />
-            </label>
+                <label>
+                  Contraseña:
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    style={inputStyle}
+                  />
+                </label>
 
-            {loginError && (
-              <p style={{ color: "red" }}>Error de login: {loginError}</p>
-            )}
+                {loginError && (
+                  <p style={{ color: "red" }}>Error de login: {loginError}</p>
+                )}
 
-            <button
-              type="submit"
-              disabled={loginLoading}
-              style={{
-                padding: "0.5rem 1rem",
-                border: "none",
-                cursor: "pointer",
-                backgroundColor: "#1976d2",
-                color: "#fff",
-                borderRadius: "4px",
-              }}
-            >
-              {loginLoading ? "Ingresando..." : "Ingresar"}
-            </button>
-          </form>
+                <button
+                  type="submit"
+                  disabled={loginLoading}
+                  style={{
+                    padding: "0.5rem 1rem",
+                    border: "none",
+                    cursor: "pointer",
+                    backgroundColor: "#1976d2",
+                    color: "#fff",
+                    borderRadius: "4px",
+                  }}
+                >
+                  {loginLoading ? "Ingresando..." : "Ingresar"}
+                </button>
+              </form>
+
+              <p style={{ marginTop: "1rem" }}>
+                ¿No tienes cuenta?{" "}
+                <button
+                  onClick={() => setMostrarRegistro(true)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "#1976d2",
+                    cursor: "pointer",
+                    textDecoration: "underline",
+                  }}
+                >
+                  Registrate aquí
+                </button>
+              </p>
+            </>
+          ) : (
+            <>
+              <h2>Registrar Nuevo Empleado</h2>
+              <form
+                onSubmit={handleRegistro}
+                style={{
+                  maxWidth: "500px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "0.75rem",
+                  marginTop: "1rem",
+                }}
+              >
+                <label>
+                  Nombre Completo:
+                  <input
+                    type="text"
+                    name="nom_emp"
+                    value={formRegistro.nom_emp}
+                    onChange={handleRegistroChange}
+                    required
+                    style={inputStyle}
+                  />
+                </label>
+
+                <label>
+                  Correo:
+                  <input
+                    type="email"
+                    name="correo"
+                    value={formRegistro.correo}
+                    onChange={handleRegistroChange}
+                    required
+                    style={inputStyle}
+                  />
+                </label>
+
+                <label>
+                  Teléfono:
+                  <input
+                    type="tel"
+                    name="tel_emp"
+                    value={formRegistro.tel_emp}
+                    onChange={handleRegistroChange}
+                    required
+                    style={inputStyle}
+                  />
+                </label>
+
+                <label>
+                  Cargo:
+                  <input
+                    type="text"
+                    name="cargo"
+                    value={formRegistro.cargo}
+                    onChange={handleRegistroChange}
+                    required
+                    style={inputStyle}
+                  />
+                </label>
+
+                <label>
+                  Rol:
+                  <select
+                    name="rol"
+                    value={formRegistro.rol}
+                    onChange={handleRegistroChange}
+                    style={inputStyle}
+                  >
+                    <option value="ADMIN">Administrador</option>
+                    <option value="MEDICO">Médico</option>
+                    <option value="ENFERMERO">Enfermero</option>
+                    <option value="ADM">Personal Administrativo</option>
+                  </select>
+                </label>
+
+                <label>
+                  Departamento:
+                  <select
+                    name="depto_id"
+                    value={formRegistro.depto_id}
+                    onChange={handleRegistroChange}
+                    required
+                    style={inputStyle}
+                  >
+                    <option value="">Selecciona un departamento</option>
+                    {departamentos.map((dept) => (
+                      <option key={dept.id} value={dept.id}>
+                        {dept.nom_dept} - {dept.sede?.nom_sede}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label>
+                  Contraseña:
+                  <input
+                    type="password"
+                    name="hash_contra"
+                    value={formRegistro.hash_contra}
+                    onChange={handleRegistroChange}
+                    required
+                    style={inputStyle}
+                  />
+                </label>
+
+                <label>
+                  Confirmar Contraseña:
+                  <input
+                    type="password"
+                    name="confirmPassword"
+                    value={formRegistro.confirmPassword}
+                    onChange={handleRegistroChange}
+                    required
+                    style={inputStyle}
+                  />
+                </label>
+
+                {registroError && (
+                  <p style={{ color: "red" }}>Error: {registroError}</p>
+                )}
+
+                {registroSuccess && (
+                  <p style={{ color: "green" }}>{registroSuccess}</p>
+                )}
+
+                <div style={{ display: "flex", gap: "0.5rem" }}>
+                  <button
+                    type="submit"
+                    disabled={registroLoading}
+                    style={{
+                      padding: "0.5rem 1rem",
+                      border: "none",
+                      cursor: "pointer",
+                      backgroundColor: "#4caf50",
+                      color: "#fff",
+                      borderRadius: "4px",
+                      flex: 1,
+                    }}
+                  >
+                    {registroLoading ? "Registrando..." : "Registrar"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMostrarRegistro(false)}
+                    style={{
+                      padding: "0.5rem 1rem",
+                      border: "none",
+                      cursor: "pointer",
+                      backgroundColor: "#757575",
+                      color: "#fff",
+                      borderRadius: "4px",
+                      flex: 1,
+                    }}
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </form>
+            </>
+          )}
         </>
       )}
 
@@ -298,6 +591,7 @@ const inputStyle = {
   marginTop: "0.25rem",
   borderRadius: "4px",
   border: "1px solid #ccc",
+  boxSizing: "border-box",
 };
 
 export default App;

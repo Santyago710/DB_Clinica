@@ -3,7 +3,6 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.views import APIView
 from rest_framework import status
-
 from django.utils import timezone
 from datetime import timedelta
 from django.db.models import Count
@@ -24,6 +23,7 @@ from .serializers import (
     PacienteSerializer,
     CitaSerializer,
     EmpleadoPublicSerializer,
+    EmpleadoCreateSerializer,
 )
 from .permissions import (
     PermisoPorRolModelo,
@@ -40,7 +40,14 @@ class SedeHospitalariaViewSet(viewsets.ModelViewSet):
 class DepartamentoViewSet(viewsets.ModelViewSet):
     queryset = Departamento.objects.select_related("sede").all()
     serializer_class = DepartamentoSerializer
-    permission_classes = [PermisoPorRolModelo]
+
+    def get_permissions(self):
+        """
+        Permite GET (listar) sin autenticación, pero requiere autenticación para crear/editar/eliminar
+        """
+        if self.request.method == "GET":
+            return []
+        return [PermisoPorRolModelo()]
 
 
 class PacienteViewSet(viewsets.ModelViewSet):
@@ -107,6 +114,30 @@ class MedicamentosMasRecetadosView(APIView):
 
 
     
+class AuthRegisterView(APIView):
+    """
+    Vista para crear un nuevo empleado (registro)
+    No requiere autenticación para permitir el registro desde el frontend
+    """
+    permission_classes = []
+
+    def post(self, request):
+        serializer = EmpleadoCreateSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(
+                {
+                    "detail": "Empleado creado exitosamente.",
+                    "empleado": serializer.data,
+                },
+                status=status.HTTP_201_CREATED,
+            )
+        return Response(
+            {"detail": "Errores en la validación.", "errors": serializer.errors},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+
 class AuthLoginView(APIView):
     
 
