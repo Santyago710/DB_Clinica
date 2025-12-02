@@ -23,6 +23,73 @@ function App() {
   // Estado de navegación
   const [paginaActual, setPaginaActual] = useState("inicio");
 
+  // Estado de analítica
+  const [analiticalData, setAnaliticaData] = useState({
+    resumen: null,
+    frecuenciaEnfermedades: [],
+    consumoMedicamentos: [],
+    utilizacionEquipamiento: [],
+    indicesAtencion: [],
+  });
+  const [cargandoAnalitica, setCargandoAnalitica] = useState(false);
+  const [errorAnalitica, setErrorAnalitica] = useState(null);
+
+  // Matriz de permisos por rol
+  const matrizPermisos = {
+    ADMIN: {
+      "Sedes Hospitalarias": "CRUD",
+      "Departamentos": "CRUD",
+      "Empleados": "CRUD",
+      "Pacientes": "CRUD",
+      "Citas": "CRUD",
+      "Historia Clínica": "RU",
+      "Prescripciones": "RU",
+      "Medicamentos": "CRUD",
+      "Equipamiento": "CRUD",
+      "Auditoría": "R",
+      "Reportes": "CRUD",
+    },
+    MEDICO: {
+      "Sedes Hospitalarias": "R",
+      "Departamentos": "R",
+      "Empleados": "R",
+      "Pacientes": "CRU",
+      "Citas": "CRU",
+      "Historia Clínica": "CRU",
+      "Prescripciones": "CRU",
+      "Medicamentos": "R",
+      "Equipamiento": "R",
+      "Auditoría": "-",
+      "Reportes": "R",
+    },
+    ENFERMERO: {
+      "Sedes Hospitalarias": "R",
+      "Departamentos": "R",
+      "Empleados": "R",
+      "Pacientes": "RU",
+      "Citas": "CRU",
+      "Historia Clínica": "R",
+      "Prescripciones": "R",
+      "Medicamentos": "R",
+      "Equipamiento": "RU",
+      "Auditoría": "-",
+      "Reportes": "R",
+    },
+    ADM: {
+      "Sedes Hospitalarias": "R",
+      "Departamentos": "R",
+      "Empleados": "R",
+      "Pacientes": "CRU",
+      "Citas": "CRUD",
+      "Historia Clínica": "-",
+      "Prescripciones": "-",
+      "Medicamentos": "R",
+      "Equipamiento": "CRU",
+      "Auditoría": "-",
+      "Reportes": "R",
+    },
+  };
+
   // Estado de registro
   const [mostrarRegistro, setMostrarRegistro] = useState(false);
   const [formRegistro, setFormRegistro] = useState({
@@ -178,9 +245,10 @@ function App() {
     }
   };
 
-  // Cuando haya empleado logueado, cargamos las métricas
+  
+  // Cuando haya empleado logueado **y** la página actual sea "metricas", cargamos las métricas
   useEffect(() => {
-    if (!empleado) {
+    if (!empleado || paginaActual !== "metricas") {
       return;
     }
 
@@ -193,7 +261,7 @@ function App() {
           "http://localhost:8000/api/metricas/medicamentos-mas-recetados/",
           {
             headers: {
-              "X-Empleado-Id": empleado.id,          
+              "X-Empleado-Id": empleado.id,
             },
           }
         );
@@ -212,7 +280,15 @@ function App() {
     };
 
     fetchMetricas();
-  }, [empleado]);
+  }, [empleado, paginaActual]); // 👈 ahora depende también de paginaActual
+
+  // Cargar analítica cuando la página es "analitica"
+  useEffect(() => {
+    if (!empleado || paginaActual !== "analitica") {
+      return;
+    }
+    cargarAnalitica();
+  }, [empleado, paginaActual]);
 
   // Preparar datos para la gráfica
   const labels = datos.map((item) => `${item.nom_med} (${item.sede})`);
@@ -247,12 +323,74 @@ function App() {
     setPaginaActual("inicio");
   };
 
+  // Función para cargar datos de analítica
+  const cargarAnalitica = async () => {
+    if (!empleado) return;
+    
+    setCargandoAnalitica(true);
+    setErrorAnalitica(null);
+
+    try {
+      const headers = {
+        "X-Empleado-Id": empleado.id,
+      };
+
+      // Cargar resumen
+      const resumenResp = await fetch(
+        "http://localhost:8000/api/analytics/resumen/",
+        { headers }
+      );
+      const resumenData = resumenResp.ok ? await resumenResp.json() : null;
+
+      // Cargar frecuencia de enfermedades
+      const enfermedadesResp = await fetch(
+        "http://localhost:8000/api/analytics/frecuencia-enfermedades/",
+        { headers }
+      );
+      const enfermedadesData = enfermedadesResp.ok ? await enfermedadesResp.json() : [];
+
+      // Cargar consumo de medicamentos
+      const medicamentosResp = await fetch(
+        "http://localhost:8000/api/analytics/consumo-medicamentos/",
+        { headers }
+      );
+      const medicamentosData = medicamentosResp.ok ? await medicamentosResp.json() : [];
+
+      // Cargar utilización de equipamiento
+      const equipamientoResp = await fetch(
+        "http://localhost:8000/api/analytics/utilizacion-equipamiento/",
+        { headers }
+      );
+      const equipamientoData = equipamientoResp.ok ? await equipamientoResp.json() : [];
+
+      // Cargar índices de atención
+      const indicesResp = await fetch(
+        "http://localhost:8000/api/analytics/indices-atencion/",
+        { headers }
+      );
+      const indicesData = indicesResp.ok ? await indicesResp.json() : [];
+
+      setAnaliticaData({
+        resumen: resumenData,
+        frecuenciaEnfermedades: enfermedadesData,
+        consumoMedicamentos: medicamentosData,
+        utilizacionEquipamiento: equipamientoData,
+        indicesAtencion: indicesData,
+      });
+    } catch (err) {
+      setErrorAnalitica(err.message);
+    } finally {
+      setCargandoAnalitica(false);
+    }
+  };
+
   // Definir opciones de menú por rol
   const getMenuPorRol = () => {
     const rolMenus = {
       ADMIN: [
         { id: "inicio", label: "Inicio", icon: "🏠" },
         { id: "metricas", label: "Métricas", icon: "📊" },
+        { id: "analitica", label: "Analítica Médica", icon: "📈" },
         { id: "empleados", label: "Gestionar Empleados", icon: "👥" },
         { id: "departamentos", label: "Departamentos", icon: "🏢" },
         { id: "pacientes", label: "Pacientes", icon: "🏥" },
@@ -262,16 +400,19 @@ function App() {
         { id: "pacientes", label: "Mis Pacientes", icon: "🏥" },
         { id: "citas", label: "Citas", icon: "📅" },
         { id: "metricas", label: "Reportes", icon: "📊" },
+        { id: "analitica", label: "Analítica Médica", icon: "📈" },
       ],
       ENFERMERO: [
         { id: "inicio", label: "Inicio", icon: "🏠" },
         { id: "pacientes", label: "Pacientes", icon: "🏥" },
         { id: "citas", label: "Citas", icon: "📅" },
+        { id: "analitica", label: "Analítica Médica", icon: "📈" },
       ],
       ADM: [
         { id: "inicio", label: "Inicio", icon: "🏠" },
         { id: "pacientes", label: "Pacientes", icon: "🏥" },
         { id: "citas", label: "Citas", icon: "📅" },
+        { id: "analitica", label: "Analítica Médica", icon: "📈" },
       ],
     };
     return rolMenus[empleado?.rol] || [];
@@ -424,7 +565,6 @@ function App() {
                     onChange={handleRegistroChange}
                     style={inputStyle}
                   >
-                    <option value="ADMIN">Administrador</option>
                     <option value="MEDICO">Médico</option>
                     <option value="ENFERMERO">Enfermero</option>
                     <option value="ADM">Personal Administrativo</option>
@@ -616,6 +756,47 @@ function App() {
                       </div>
                     ))}
                 </div>
+
+                {/* Matriz de Permisos */}
+                <div style={{ marginTop: "3rem" }}>
+                  <h3>Matriz de Permisos para {empleado.rol}</h3>
+                  <p style={{ color: "#666", marginBottom: "1rem" }}>
+                    Leyenda: C = Crear, R = Leer, U = Actualizar, D = Eliminar, - = Sin acceso
+                  </p>
+                  <table style={permisosTableStyle}>
+                    <thead>
+                      <tr style={{ backgroundColor: "#1565c0", color: "#fff" }}>
+                        <th style={permisosTh}>Módulo</th>
+                        <th style={permisosTh}>Permisos</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Object.entries(matrizPermisos[empleado.rol] || {}).map(
+                        ([modulo, permisos], idx) => (
+                          <tr
+                            key={modulo}
+                            style={{
+                              backgroundColor: idx % 2 === 0 ? "#f9f9f9" : "#fff",
+                            }}
+                          >
+                            <td style={permisosTd}>{modulo}</td>
+                            <td
+                              style={{
+                                ...permisosTd,
+                                fontFamily: "monospace",
+                                fontWeight: "bold",
+                                color:
+                                  permisos === "-" ? "#999" : "#1565c0",
+                              }}
+                            >
+                              {permisos}
+                            </td>
+                          </tr>
+                        )
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
 
@@ -661,6 +842,215 @@ function App() {
                         ))}
                       </tbody>
                     </table>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Página de Analítica Médica */}
+            {paginaActual === "analitica" && (
+              <div>
+                <h2>Analítica Médica</h2>
+
+                {cargandoAnalitica && <p>Cargando datos de analítica...</p>}
+
+                {errorAnalitica && (
+                  <p style={{ color: "red" }}>
+                    Error al cargar analítica: {errorAnalitica}
+                  </p>
+                )}
+
+                {!cargandoAnalitica && !errorAnalitica && analiticalData.resumen && (
+                  <>
+                    {/* Resumen General */}
+                    <div style={{ 
+                      backgroundColor: "#f5f5f5", 
+                      padding: "1.5rem", 
+                      borderRadius: "8px",
+                      marginBottom: "2rem"
+                    }}>
+                      <h3>Resumen General (Último Mes)</h3>
+                      <div style={gridStyle}>
+                        <div style={tarjetaResumenStyle}>
+                          <div style={{ fontSize: "1.5rem", fontWeight: "bold", color: "#1976d2" }}>
+                            {analiticalData.resumen.resumen_mes.pacientes_atendidos}
+                          </div>
+                          <div style={{ color: "#666", marginTop: "0.5rem" }}>
+                            Pacientes Atendidos
+                          </div>
+                        </div>
+                        <div style={tarjetaResumenStyle}>
+                          <div style={{ fontSize: "1.5rem", fontWeight: "bold", color: "#388e3c" }}>
+                            {analiticalData.resumen.resumen_mes.total_prescripciones}
+                          </div>
+                          <div style={{ color: "#666", marginTop: "0.5rem" }}>
+                            Prescripciones Totales
+                          </div>
+                        </div>
+                        <div style={tarjetaResumenStyle}>
+                          <div style={{ fontSize: "1.5rem", fontWeight: "bold", color: "#f57c00" }}>
+                            {analiticalData.resumen.resumen_mes.medicamento_top}
+                          </div>
+                          <div style={{ color: "#666", marginTop: "0.5rem" }}>
+                            Medicamento Top
+                          </div>
+                        </div>
+                        <div style={tarjetaResumenStyle}>
+                          <div style={{ fontSize: "1.5rem", fontWeight: "bold", color: "#7b1fa2" }}>
+                            {analiticalData.resumen.resumen_mes.departamento_top}
+                          </div>
+                          <div style={{ color: "#666", marginTop: "0.5rem" }}>
+                            Depto. más Activo
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Equipamiento */}
+                    <div style={{ marginBottom: "2rem" }}>
+                      <h3>Estado del Equipamiento</h3>
+                      <div style={gridStyle}>
+                        <div style={tarjetaResumenStyle}>
+                          <div style={{ fontSize: "1.5rem", fontWeight: "bold", color: "#388e3c" }}>
+                            {analiticalData.resumen.equipamiento.operativo}
+                          </div>
+                          <div style={{ color: "#666", marginTop: "0.5rem" }}>
+                            Operativo
+                          </div>
+                        </div>
+                        <div style={tarjetaResumenStyle}>
+                          <div style={{ fontSize: "1.5rem", fontWeight: "bold", color: "#ff9800" }}>
+                            {analiticalData.resumen.equipamiento.en_mantenimiento}
+                          </div>
+                          <div style={{ color: "#666", marginTop: "0.5rem" }}>
+                            En Mantenimiento
+                          </div>
+                        </div>
+                        <div style={tarjetaResumenStyle}>
+                          <div style={{ fontSize: "1.5rem", fontWeight: "bold", color: "#d32f2f" }}>
+                            {analiticalData.resumen.equipamiento.fuera_servicio}
+                          </div>
+                          <div style={{ color: "#666", marginTop: "0.5rem" }}>
+                            Fuera de Servicio
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Frecuencia de Enfermedades */}
+                    {analiticalData.frecuenciaEnfermedades.length > 0 && (
+                      <div style={{ marginBottom: "2rem" }}>
+                        <h3>Frecuencia de Enfermedades (Último Año)</h3>
+                        <table style={tableStyle}>
+                          <thead>
+                            <tr>
+                              <th style={thStyle}>Diagnóstico</th>
+                              <th style={thStyle}>Frecuencia</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {analiticalData.frecuenciaEnfermedades.slice(0, 10).map((item, idx) => (
+                              <tr key={idx}>
+                                <td style={tdStyle}>{item.diagnostico}</td>
+                                <td style={tdStyle}>{item.frecuencia}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+
+                    {/* Consumo de Medicamentos por Departamento */}
+                    {analiticalData.consumoMedicamentos.length > 0 && (
+                      <div style={{ marginBottom: "2rem" }}>
+                        <h3>Consumo de Medicamentos por Departamento (Último Mes)</h3>
+                        <table style={tableStyle}>
+                          <thead>
+                            <tr>
+                              <th style={thStyle}>Sede</th>
+                              <th style={thStyle}>Departamento</th>
+                              <th style={thStyle}>Medicamento</th>
+                              <th style={thStyle}>Prescripciones</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {analiticalData.consumoMedicamentos.slice(0, 15).map((item, idx) => (
+                              <tr key={idx}>
+                                <td style={tdStyle}>{item.sede}</td>
+                                <td style={tdStyle}>{item.departamento}</td>
+                                <td style={tdStyle}>{item.medicamento}</td>
+                                <td style={tdStyle}>{item.cantidad_prescripciones}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+
+                    {/* Índices de Atención por Sede */}
+                    {analiticalData.indicesAtencion.length > 0 && (
+                      <div style={{ marginBottom: "2rem" }}>
+                        <h3>Índices de Atención por Sede (Último Mes)</h3>
+                        <table style={tableStyle}>
+                          <thead>
+                            <tr>
+                              <th style={thStyle}>Sede</th>
+                              <th style={thStyle}>Total Citas</th>
+                              <th style={thStyle}>Atendidas</th>
+                              <th style={thStyle}>Pendientes</th>
+                              <th style={thStyle}>Canceladas</th>
+                              <th style={thStyle}>% Cumplimiento</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {analiticalData.indicesAtencion.map((item, idx) => (
+                              <tr key={idx}>
+                                <td style={tdStyle}>{item.sede}</td>
+                                <td style={tdStyle}>{item.total_citas}</td>
+                                <td style={tdStyle}>{item.citas_atendidas}</td>
+                                <td style={tdStyle}>{item.citas_pendientes}</td>
+                                <td style={tdStyle}>{item.citas_canceladas}</td>
+                                <td style={{...tdStyle, color: item.porcentaje_cumplimiento > 80 ? "#388e3c" : "#ff9800" }}>
+                                  {item.porcentaje_cumplimiento}%
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+
+                    {/* Utilización de Equipamiento */}
+                    {analiticalData.utilizacionEquipamiento.length > 0 && (
+                      <div style={{ marginBottom: "2rem" }}>
+                        <h3>Utilización de Equipamiento</h3>
+                        <table style={tableStyle}>
+                          <thead>
+                            <tr>
+                              <th style={thStyle}>Sede</th>
+                              <th style={thStyle}>Departamento</th>
+                              <th style={thStyle}>Estado</th>
+                              <th style={thStyle}>Cantidad</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {analiticalData.utilizacionEquipamiento.map((item, idx) => (
+                              <tr key={idx}>
+                                <td style={tdStyle}>{item.sede}</td>
+                                <td style={tdStyle}>{item.departamento}</td>
+                                <td style={{...tdStyle, fontWeight: "bold", color: 
+                                  item.estado === "OPERATIVO" ? "#388e3c" :
+                                  item.estado === "EN_MANTENIMIENTO" ? "#ff9800" : "#d32f2f"
+                                }}>
+                                  {item.estado}
+                                </td>
+                                <td style={tdStyle}>{item.cantidad}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
                   </>
                 )}
               </div>
@@ -777,10 +1167,37 @@ const tarjetaStyle = {
   },
 };
 
+const tarjetaResumenStyle = {
+  padding: "1.5rem",
+  border: "1px solid #ddd",
+  borderRadius: "8px",
+  backgroundColor: "#fff",
+  boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+  textAlign: "center",
+};
+
 const tableStyle = {
   borderCollapse: "collapse",
   width: "100%",
   marginTop: "1rem",
+};
+
+const permisosTableStyle = {
+  borderCollapse: "collapse",
+  width: "100%",
+  marginTop: "1rem",
+  border: "1px solid #ddd",
+};
+
+const permisosTh = {
+  padding: "0.75rem",
+  textAlign: "left",
+  borderBottom: "2px solid #1565c0",
+};
+
+const permisosTd = {
+  padding: "0.75rem",
+  borderBottom: "1px solid #ddd",
 };
 
 export default App;

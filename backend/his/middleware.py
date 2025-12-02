@@ -20,9 +20,11 @@ class AuditoriaAccesosMiddleware(MiddlewareMixin):
     """
 
     def process_view(self, request, view_func, view_args, view_kwargs):
-        # No auditamos el login ni el admin
+        # No auditamos el login, el admin ni las métricas (son reportes, no accesos directos a datos)
         path = request.path or ""
-        if path.startswith("/admin/") or path.startswith("/api/auth/login/"):
+        if (path.startswith("/admin/") or 
+            path.startswith("/api/auth/login/") or 
+            path.startswith("/api/metricas/")):
             return None
 
         # Intentamos obtener el empleado; si no hay, no auditamos

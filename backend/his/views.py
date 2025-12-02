@@ -15,7 +15,9 @@ from .models import (
     Cita,
     Prescripcion,          
     Medicamento,
-    Empleado,           
+    Empleado,
+    HistoriaClinica,
+    Equipamiento,
 )
 from .serializers import (
     SedeHospitalariaSerializer,
@@ -181,4 +183,263 @@ class AuthLoginView(APIView):
             status=status.HTTP_200_OK,
         )
 
+
+# ==================== MÓDULO DE ANALÍTICA MÉDICA ====================
+
+class FrecuenciaEnfermedadesView(APIView):
+    """
+    Devuelve la frecuencia de enfermedades tratadas en el último año.
+    Agrupa por diagnóstico y cuenta historias clínicas.
+    """
+    permission_classes = [EsEmpleadoAutenticado]
+    permission_model = HistoriaClinica
+
+    def get(self, request):
+        from .models import HistoriaClinica
+        
+        hace_un_ano = timezone.now() - timedelta(days=365)
+
+        queryset = (
+            HistoriaClinica.objects.filter(fecha_registro__gte=hace_un_ano)
+            .values("diagnostico")
+            .annotate(total=Count("id"))
+            .order_by("-total")[:20]
+        )
+
+        data = [
+            {
+                "diagnostico": item["diagnostico"],
+                "frecuencia": item["total"],
+            }
+            for item in queryset
+        ]
+
+        return Response(data, status=status.HTTP_200_OK)
+
+
+class ConsumoMedicamentosDeptView(APIView):
+    """
+    Devuelve el consumo de medicamentos por departamento en el último mes.
+    Agrupa por departamento y medicamento.
+    """
+    permission_classes = [EsEmpleadoAutenticado]
+    permission_model = Prescripcion
+
+    def get(self, request):
+        hace_un_mes = timezone.now() - timedelta(days=30)
+
+        queryset = (
+            Prescripcion.objects.filter(fecha_emision__gte=hace_un_mes)
+            .values(
+                "historia__sede__nom_sede",
+                "historia__empleado__depto__nom_dept",
+                "medicamento__nom_med",
+                "medicamento__id",
+            )
+            .annotate(cantidad=Count("id"))
+            .order_by(
+                "historia__empleado__depto__nom_dept",
+                "-cantidad"
+            )
+        )
+
+        data = [
+            {
+                "sede": item["historia__sede__nom_sede"],
+                "departamento": item["historia__empleado__depto__nom_dept"],
+                "medicamento": item["medicamento__nom_med"],
+                "medicamento_id": item["medicamento__id"],
+                "cantidad_prescripciones": item["cantidad"],
+            }
+            for item in queryset
+        ]
+
+        return Response(data, status=status.HTTP_200_OK)
+
+
+class UtilizacionEquipamientoView(APIView):
+    """
+    Devuelve el estado y utilización del equipamiento por departamento.
+    """
+    permission_classes = [EsEmpleadoAutenticado]
+    permission_model = Equipamiento
+
+    def get(self, request):
+        from .models import Equipamiento
+        
+        queryset = (
+            Equipamiento.objects.select_related("depto", "depto__sede")
+            .values(
+                "depto__sede__nom_sede",
+                "depto__nom_dept",
+                "estado",
+            )
+            .annotate(total=Count("id"))
+            .order_by("depto__nom_dept", "estado")
+        )
+
+        data = [
+            {
+                "sede": item["depto__sede__nom_sede"],
+                "departamento": item["depto__nom_dept"],
+                "estado": item["estado"],
+                "cantidad": item["total"],
+            }
+            for item in queryset
+        ]
+
+        return Response(data, status=status.HTTP_200_OK)
+
+
+class IndicesAtencionView(APIView):
+    """
+    Devuelve índices de atención y tiempos promedio de espera por sede.
+    Calcula:
+    - Total de citas (últimos 30 días)
+    - Citas atendidas
+    - Citas pendientes
+    - Citas canceladas
+    - Porcentaje de cumplimiento
+    """
+    permission_classes = [EsEmpleadoAutenticado]
+    permission_model = Cita
+
+    def get(self, request):
+        hace_un_mes = timezone.now() - timedelta(days=30)
+
+        # Estadísticas por sede
+        queryset = (
+            Cita.objects.filter(fecha__gte=hace_un_mes.date())
+            .values("depto__sede__nom_sede", "depto__sede__id", "estado")
+            .annotate(total=Count("id"))
+            .order_by("depto__sede__nom_sede", "estado")
+        )
+
+        # Agrupar datos por sede
+        sedes_data = {}
+        for item in queryset:
+            sede_nombre = item["depto__sede__nom_sede"]
+            sede_id = item["depto__sede__id"]
+            estado = item["estado"]
+            total = item["total"]
+
+            if sede_nombre not in sedes_data:
+                sedes_data[sede_nombre] = {
+                    "sede_id": sede_id,
+                    "sede": sede_nombre,
+                    "total_citas": 0,
+                    "atendidas": 0,
+                    "pendientes": 0,
+                    "canceladas": 0,
+                }
+
+            sedes_data[sede_nombre]["total_citas"] += total
+            if estado == "ATENDIDA":
+                sedes_data[sede_nombre]["atendidas"] = total
+            elif estado == "PENDIENTE":
+                sedes_data[sede_nombre]["pendientes"] = total
+            elif estado == "CANCELADA":
+                sedes_data[sede_nombre]["canceladas"] = total
+
+        # Calcular porcentajes
+        data = []
+        for sede_nombre, stats in sedes_data.items():
+            total = stats["total_citas"]
+            porcentaje_cumplimiento = (
+                (stats["atendidas"] / total * 100) if total > 0 else 0
+            )
+            data.append({
+                "sede_id": stats["sede_id"],
+                "sede": stats["sede"],
+                "total_citas": stats["total_citas"],
+                "citas_atendidas": stats["atendidas"],
+                "citas_pendientes": stats["pendientes"],
+                "citas_canceladas": stats["canceladas"],
+                "porcentaje_cumplimiento": round(porcentaje_cumplimiento, 2),
+            })
+
+        data.sort(key=lambda x: x["sede"])
+        return Response(data, status=status.HTTP_200_OK)
+
+
+class ResumenAnaliticaView(APIView):
+    """
+    Devuelve un resumen consolidado de todas las métricas de analítica.
+    """
+    permission_classes = [EsEmpleadoAutenticado]
+
+    def get(self, request):
+        hace_un_mes = timezone.now() - timedelta(days=30)
+        hace_un_ano = timezone.now() - timedelta(days=365)
+
+        # 1. Total de pacientes atendidos en el último mes
+        pacientes_atendidos = (
+            HistoriaClinica.objects.filter(fecha_registro__gte=hace_un_mes)
+            .values("paciente_id")
+            .distinct()
+            .count()
+        )
+
+        # 2. Total de prescripciones en el último mes
+        total_prescripciones = (
+            Prescripcion.objects.filter(fecha_emision__gte=hace_un_mes).count()
+        )
+
+        # 3. Medicamento más recetado
+        medicamento_top = (
+            Prescripcion.objects.filter(fecha_emision__gte=hace_un_mes)
+            .values("medicamento__nom_med")
+            .annotate(total=Count("id"))
+            .order_by("-total")
+            .first()
+        )
+
+        # 4. Departamento con más citas
+        depto_top = (
+            Cita.objects.filter(fecha__gte=hace_un_mes.date())
+            .values("depto__nom_dept")
+            .annotate(total=Count("id"))
+            .order_by("-total")
+            .first()
+        )
+
+        # 5. Diagnóstico más frecuente en el último año
+        diagnostico_top = (
+            HistoriaClinica.objects.filter(fecha_registro__gte=hace_un_ano)
+            .values("diagnostico")
+            .annotate(total=Count("id"))
+            .order_by("-total")
+            .first()
+        )
+
+        # 6. Estado del equipamiento
+        equipamiento_operativo = (
+            Equipamiento.objects.filter(estado="OPERATIVO").count()
+        )
+        equipamiento_mantenimiento = (
+            Equipamiento.objects.filter(estado="EN_MANTENIMIENTO").count()
+        )
+        equipamiento_fuera = (
+            Equipamiento.objects.filter(estado="FUERA_SERVICIO").count()
+        )
+
+        return Response({
+            "resumen_mes": {
+                "pacientes_atendidos": pacientes_atendidos,
+                "total_prescripciones": total_prescripciones,
+                "medicamento_top": medicamento_top.get("medicamento__nom_med") if medicamento_top else None,
+                "medicamento_top_cantidad": medicamento_top.get("total") if medicamento_top else 0,
+                "departamento_top": depto_top.get("depto__nom_dept") if depto_top else None,
+                "departamento_top_citas": depto_top.get("total") if depto_top else 0,
+            },
+            "resumen_anual": {
+                "diagnostico_frecuente": diagnostico_top.get("diagnostico") if diagnostico_top else None,
+                "diagnostico_frecuente_total": diagnostico_top.get("total") if diagnostico_top else 0,
+            },
+            "equipamiento": {
+                "operativo": equipamiento_operativo,
+                "en_mantenimiento": equipamiento_mantenimiento,
+                "fuera_servicio": equipamiento_fuera,
+            }
+        }, status=status.HTTP_200_OK)
 

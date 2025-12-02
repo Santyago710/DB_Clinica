@@ -9,7 +9,12 @@ from his.views import (
     CitaViewSet,
     MedicamentosMasRecetadosView,
     AuthRegisterView,
-    AuthLoginView,  
+    AuthLoginView,
+    FrecuenciaEnfermedadesView,
+    ConsumoMedicamentosDeptView,
+    UtilizacionEquipamientoView,
+    IndicesAtencionView,
+    ResumenAnaliticaView,
 )
 
 
@@ -37,5 +42,30 @@ urlpatterns = [
         AuthLoginView.as_view(),
         name="auth-login",
     ),
+    # Endpoints de analítica médica
+    path(
+        "api/analytics/frecuencia-enfermedades/",
+        FrecuenciaEnfermedadesView.as_view(),
+        name="frecuencia-enfermedades",
+    ),
+    path(
+        "api/analytics/consumo-medicamentos/",
+        ConsumoMedicamentosDeptView.as_view(),
+        name="consumo-medicamentos",
+    ),
+    path(
+        "api/analytics/utilizacion-equipamiento/",
+        UtilizacionEquipamientoView.as_view(),
+        name="utilizacion-equipamiento",
+    ),
+    path(
+        "api/analytics/indices-atencion/",
+        IndicesAtencionView.as_view(),
+        name="indices-atencion",
+    ),
+    path(
+        "api/analytics/resumen/",
+        ResumenAnaliticaView.as_view(),
+        name="resumen-analitica",
+    ),
 ]
-
