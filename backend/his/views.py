@@ -26,6 +26,11 @@ from .serializers import (
     CitaSerializer,
     EmpleadoPublicSerializer,
     EmpleadoCreateSerializer,
+    EmpleadoSerializer,
+    MedicamentoSerializer,
+    EquipamientoSerializer,
+    HistoriaClinicaSerializer,
+    PrescripcionSerializer,
 )
 from .permissions import (
     PermisoPorRolModelo,
@@ -77,7 +82,32 @@ class CitaViewSet(viewsets.ModelViewSet):
             .order_by("estado")
         )
         return Response(list(data))
+
+
+class MedicamentoViewSet(viewsets.ModelViewSet):
+    queryset = Medicamento.objects.all()
+    serializer_class = MedicamentoSerializer
+    permission_classes = [PermisoPorRolModelo]
+
+
+class EquipamientoViewSet(viewsets.ModelViewSet):
+    queryset = Equipamiento.objects.select_related("depto", "depto__sede", "responsable").all()
+    serializer_class = EquipamientoSerializer
+    permission_classes = [PermisoPorRolModelo]
+
+
+class HistoriaClinicaViewSet(viewsets.ModelViewSet):
+    queryset = HistoriaClinica.objects.select_related("paciente", "empleado", "sede").all()
+    serializer_class = HistoriaClinicaSerializer
+    permission_classes = [PermisoPorRolModelo]
+
+
+class PrescripcionViewSet(viewsets.ModelViewSet):
+    queryset = Prescripcion.objects.select_related("historia", "medicamento").all()
+    serializer_class = PrescripcionSerializer
+    permission_classes = [PermisoPorRolModelo]
     
+
 class MedicamentosMasRecetadosView(APIView):
     """
     Devuelve los medicamentos más recetados por sede en el último mes.

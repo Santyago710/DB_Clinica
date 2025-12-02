@@ -7,6 +7,10 @@ from his.views import (
     DepartamentoViewSet,
     PacienteViewSet,
     CitaViewSet,
+    MedicamentoViewSet,
+    EquipamientoViewSet,
+    HistoriaClinicaViewSet,
+    PrescripcionViewSet,
     MedicamentosMasRecetadosView,
     AuthRegisterView,
     AuthLoginView,
@@ -23,6 +27,10 @@ router.register(r"sedes", SedeHospitalariaViewSet, basename="sede")
 router.register(r"departamentos", DepartamentoViewSet, basename="departamento")
 router.register(r"pacientes", PacienteViewSet, basename="paciente")
 router.register(r"citas", CitaViewSet, basename="cita")
+router.register(r"medicamentos", MedicamentoViewSet, basename="medicamento")
+router.register(r"equipamiento", EquipamientoViewSet, basename="equipamiento")
+router.register(r"historias-clinicas", HistoriaClinicaViewSet, basename="historia-clinica")
+router.register(r"prescripciones", PrescripcionViewSet, basename="prescripcion")
 
 urlpatterns = [
     path("admin/", admin.site.urls),

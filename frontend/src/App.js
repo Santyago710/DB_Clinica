@@ -9,6 +9,7 @@ import {
   Legend,
 } from "chart.js";
 import { Bar } from "react-chartjs-2";
+import { PacientesPage, CitasPage, MedicamentosPage } from "./CRUDPages";
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
@@ -389,30 +390,40 @@ function App() {
     const rolMenus = {
       ADMIN: [
         { id: "inicio", label: "Inicio", icon: "🏠" },
-        { id: "metricas", label: "Métricas", icon: "📊" },
         { id: "analitica", label: "Analítica Médica", icon: "📈" },
-        { id: "empleados", label: "Gestionar Empleados", icon: "👥" },
+        { id: "metricas", label: "Métricas", icon: "📊" },
+        { id: "sedes", label: "Sedes Hospitalarias", icon: "🏥" },
         { id: "departamentos", label: "Departamentos", icon: "🏢" },
-        { id: "pacientes", label: "Pacientes", icon: "🏥" },
+        { id: "empleados", label: "Gestionar Empleados", icon: "👥" },
+        { id: "pacientes", label: "Pacientes", icon: "🩺" },
+        { id: "citas", label: "Citas", icon: "📅" },
+        { id: "medicamentos", label: "Medicamentos", icon: "💊" },
+        { id: "equipamiento", label: "Equipamiento", icon: "🔧" },
+        { id: "historias", label: "Historias Clínicas", icon: "📋" },
+        { id: "prescripciones", label: "Prescripciones", icon: "📝" },
       ],
       MEDICO: [
         { id: "inicio", label: "Inicio", icon: "🏠" },
-        { id: "pacientes", label: "Mis Pacientes", icon: "🏥" },
-        { id: "citas", label: "Citas", icon: "📅" },
-        { id: "metricas", label: "Reportes", icon: "📊" },
         { id: "analitica", label: "Analítica Médica", icon: "📈" },
+        { id: "metricas", label: "Reportes", icon: "📊" },
+        { id: "pacientes", label: "Mis Pacientes", icon: "🩺" },
+        { id: "citas", label: "Citas", icon: "📅" },
+        { id: "historias", label: "Historias Clínicas", icon: "📋" },
+        { id: "prescripciones", label: "Prescripciones", icon: "📝" },
       ],
       ENFERMERO: [
         { id: "inicio", label: "Inicio", icon: "🏠" },
-        { id: "pacientes", label: "Pacientes", icon: "🏥" },
-        { id: "citas", label: "Citas", icon: "📅" },
         { id: "analitica", label: "Analítica Médica", icon: "📈" },
+        { id: "pacientes", label: "Pacientes", icon: "🩺" },
+        { id: "citas", label: "Citas", icon: "📅" },
+        { id: "equipamiento", label: "Equipamiento", icon: "🔧" },
       ],
       ADM: [
         { id: "inicio", label: "Inicio", icon: "🏠" },
-        { id: "pacientes", label: "Pacientes", icon: "🏥" },
-        { id: "citas", label: "Citas", icon: "📅" },
         { id: "analitica", label: "Analítica Médica", icon: "📈" },
+        { id: "pacientes", label: "Pacientes", icon: "🩺" },
+        { id: "citas", label: "Citas", icon: "📅" },
+        { id: "equipamiento", label: "Equipamiento", icon: "🔧" },
       ],
     };
     return rolMenus[empleado?.rol] || [];
@@ -1056,17 +1067,32 @@ function App() {
               </div>
             )}
 
-            {/* Página de Empleados (solo ADMIN) */}
-            {paginaActual === "empleados" && empleado.rol === "ADMIN" && (
+            {/* Página de Pacientes */}
+            {paginaActual === "pacientes" && (
+              <PacientesPage empleado={empleado} />
+            )}
+
+            {/* Página de Citas */}
+            {paginaActual === "citas" && (
+              <CitasPage empleado={empleado} />
+            )}
+
+            {/* Página de Medicamentos */}
+            {paginaActual === "medicamentos" && (
+              <MedicamentosPage empleado={empleado} />
+            )}
+
+            {/* Página de Sedes */}
+            {paginaActual === "sedes" && empleado.rol === "ADMIN" && (
               <div>
-                <h2>Gestión de Empleados</h2>
+                <h2>Gestión de Sedes Hospitalarias</h2>
                 <p style={{ color: "#666" }}>
                   Esta sección está en desarrollo...
                 </p>
               </div>
             )}
 
-            {/* Página de Departamentos (solo ADMIN) */}
+            {/* Página de Departamentos */}
             {paginaActual === "departamentos" && empleado.rol === "ADMIN" && (
               <div>
                 <h2>Gestión de Departamentos</h2>
@@ -1076,20 +1102,40 @@ function App() {
               </div>
             )}
 
-            {/* Página de Pacientes */}
-            {paginaActual === "pacientes" && (
+            {/* Página de Empleados */}
+            {paginaActual === "empleados" && empleado.rol === "ADMIN" && (
               <div>
-                <h2>Gestión de Pacientes</h2>
+                <h2>Gestión de Empleados</h2>
                 <p style={{ color: "#666" }}>
                   Esta sección está en desarrollo...
                 </p>
               </div>
             )}
 
-            {/* Página de Citas */}
-            {paginaActual === "citas" && (
+            {/* Página de Historias Clínicas */}
+            {paginaActual === "historias" && (["ADMIN", "MEDICO", "ENFERMERO"].includes(empleado.rol)) && (
               <div>
-                <h2>Gestión de Citas</h2>
+                <h2>Historias Clínicas</h2>
+                <p style={{ color: "#666" }}>
+                  Esta sección está en desarrollo...
+                </p>
+              </div>
+            )}
+
+            {/* Página de Prescripciones */}
+            {paginaActual === "prescripciones" && (["ADMIN", "MEDICO"].includes(empleado.rol)) && (
+              <div>
+                <h2>Prescripciones</h2>
+                <p style={{ color: "#666" }}>
+                  Esta sección está en desarrollo...
+                </p>
+              </div>
+            )}
+
+            {/* Página de Equipamiento */}
+            {paginaActual === "equipamiento" && (["ADMIN", "ENFERMERO", "ADM"].includes(empleado.rol)) && (
+              <div>
+                <h2>Gestión de Equipamiento</h2>
                 <p style={{ color: "#666" }}>
                   Esta sección está en desarrollo...
                 </p>
