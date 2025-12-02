@@ -75,12 +75,9 @@ class MedicamentosMasRecetadosView(APIView):
     Agrupa por sede y medicamento, ordenado por total de prescripciones.
     """
     permission_classes = [EsEmpleadoAutenticado]
+    permission_model = Prescripcion   # 👈 clave: para auditoría y permisos futuros
 
     def get(self, request):
-        from django.utils import timezone
-        from datetime import timedelta
-        from django.db.models import Count
-
         hace_un_mes = timezone.now() - timedelta(days=30)
 
         queryset = (
@@ -107,6 +104,7 @@ class MedicamentosMasRecetadosView(APIView):
         ]
 
         return Response(data, status=status.HTTP_200_OK)
+
 
     
 class AuthLoginView(APIView):

@@ -57,6 +57,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'his.middleware.AuditoriaAccesosMiddleware', 
 ]
 
 ROOT_URLCONF = 'hisplus_backend.urls'
