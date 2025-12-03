@@ -12,7 +12,7 @@ from .models import (
     AuditoriaAcceso,
     ReporteMedico,
 )
-qa
+
 
 @admin.register(SedeHospitalaria)
 class SedeHospitalariaAdmin(admin.ModelAdmin):
