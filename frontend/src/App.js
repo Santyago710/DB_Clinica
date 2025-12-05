@@ -13,6 +13,24 @@ import { PacientesPage, CitasPage, MedicamentosPage } from "./CRUDPages";
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
+// Configuración de API - Detecta automáticamente la IP del servidor
+// Si estás en localhost, usa localhost:8000
+// Si accedes desde otra IP, usa esa misma IP:8000
+const getApiUrl = () => {
+  const hostname = window.location.hostname;
+  
+  // Si el hostname es localhost o 127.0.0.1, usa puerto 8000
+  if (hostname === "localhost" || hostname === "127.0.0.1") {
+    return "http://localhost:8000";
+  }
+  
+  // Para cualquier otra IP, asume que el backend está en la misma IP puerto 8000
+  return `http://${hostname}:8000`;
+};
+
+const API_BASE_URL = process.env.REACT_APP_API_URL || getApiUrl();
+const API_URL = `${API_BASE_URL}/api`;
+
 function App() {
   // Estado de autenticación
   const [empleado, setEmpleado] = useState(null);
@@ -113,7 +131,7 @@ function App() {
     if (mostrarRegistro) {
       const fetchDepartamentos = async () => {
         try {
-          const resp = await fetch("http://localhost:8000/api/departamentos/", {
+          const resp = await fetch(`${API_URL}/departamentos/`, {
             headers: {
               "Content-Type": "application/json",
             },
@@ -142,7 +160,7 @@ function App() {
     setLoginLoading(true);
 
     try {
-      const resp = await fetch("http://localhost:8000/api/auth/login/", {
+      const resp = await fetch(`${API_URL}/auth/login/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -206,7 +224,7 @@ function App() {
     };
 
     try {
-      const resp = await fetch("http://localhost:8000/api/auth/register/", {
+      const resp = await fetch(`${API_URL}/auth/register/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -259,7 +277,7 @@ function App() {
 
       try {
         const resp = await fetch(
-          "http://localhost:8000/api/metricas/medicamentos-mas-recetados/",
+          `${API_URL}/metricas/medicamentos-mas-recetados/`,
           {
             headers: {
               "X-Empleado-Id": empleado.id,
@@ -338,35 +356,35 @@ function App() {
 
       // Cargar resumen
       const resumenResp = await fetch(
-        "http://localhost:8000/api/analytics/resumen/",
+        `${API_URL}/analytics/resumen/`,
         { headers }
       );
       const resumenData = resumenResp.ok ? await resumenResp.json() : null;
 
       // Cargar frecuencia de enfermedades
       const enfermedadesResp = await fetch(
-        "http://localhost:8000/api/analytics/frecuencia-enfermedades/",
+        `${API_URL}/analytics/frecuencia-enfermedades/`,
         { headers }
       );
       const enfermedadesData = enfermedadesResp.ok ? await enfermedadesResp.json() : [];
 
       // Cargar consumo de medicamentos
       const medicamentosResp = await fetch(
-        "http://localhost:8000/api/analytics/consumo-medicamentos/",
+        `${API_URL}/analytics/consumo-medicamentos/`,
         { headers }
       );
       const medicamentosData = medicamentosResp.ok ? await medicamentosResp.json() : [];
 
       // Cargar utilización de equipamiento
       const equipamientoResp = await fetch(
-        "http://localhost:8000/api/analytics/utilizacion-equipamiento/",
+        `${API_URL}/analytics/utilizacion-equipamiento/`,
         { headers }
       );
       const equipamientoData = equipamientoResp.ok ? await equipamientoResp.json() : [];
 
       // Cargar índices de atención
       const indicesResp = await fetch(
-        "http://localhost:8000/api/analytics/indices-atencion/",
+        `${API_URL}/analytics/indices-atencion/`,
         { headers }
       );
       const indicesData = indicesResp.ok ? await indicesResp.json() : [];

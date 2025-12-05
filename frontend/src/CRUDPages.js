@@ -1,7 +1,17 @@
 import React, { useState, useEffect } from "react";
 import { fetchData, createData, updateData, deleteData, TableCRUD } from "./CRUDUtils";
 
-const API_BASE = "http://localhost:8000/api";
+const getApiBase = () => {
+  const hostname = window.location.hostname;
+  if (hostname === "localhost" || hostname === "127.0.0.1") {
+    return "http://localhost:8000/api";
+  }
+  return `http://${hostname}:8000/api`;
+};
+
+const API_BASE = process.env.REACT_APP_API_URL 
+  ? `${process.env.REACT_APP_API_URL}/api` 
+  : getApiBase();
 
 // ==================== PACIENTES ====================
 export const PacientesPage = ({ empleado }) => {
