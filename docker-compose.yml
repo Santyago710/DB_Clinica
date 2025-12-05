@@ -1,23 +1,6 @@
 version: '3.9'
 
 services:
-  db:
-    container_name: postgres-container
-    image: postgres:16
-    restart: always
-    environment:
-      POSTGRES_DB: hisplus_db
-      POSTGRES_USER: hisplus_user
-      POSTGRES_PASSWORD: hisplus_password
-    volumes:
-      - ./postgres:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U hisplus_user -d hisplus_db"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
 
   web:
     container_name: django-web
@@ -31,8 +14,6 @@ services:
       - .env.dev
     ports:
       - "8000:8000"
-    depends_on:
-      - db
 
   frontend:
     container_name: react-frontend
