@@ -84,6 +84,30 @@ class CitaViewSet(viewsets.ModelViewSet):
         return Response(list(data))
 
 
+class EmpleadoViewSet(viewsets.ModelViewSet):
+    queryset = Empleado.objects.select_related("depto", "depto__sede").all()
+    serializer_class = EmpleadoSerializer
+    permission_classes = [PermisoPorRolModelo]
+
+    def get_serializer_class(self):
+        """
+        Usa EmpleadoCreateSerializer para POST, EmpleadoSerializer para otros
+        """
+        if self.request.method == "POST":
+            return EmpleadoCreateSerializer
+        return EmpleadoSerializer
+
+    def create(self, request, *args, **kwargs):
+        """
+        Permite crear empleados con hash de contraseña
+        """
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+
 class MedicamentoViewSet(viewsets.ModelViewSet):
     queryset = Medicamento.objects.all()
     serializer_class = MedicamentoSerializer

@@ -7,6 +7,7 @@ from his.views import (
     DepartamentoViewSet,
     PacienteViewSet,
     CitaViewSet,
+    EmpleadoViewSet,
     MedicamentoViewSet,
     EquipamientoViewSet,
     HistoriaClinicaViewSet,
@@ -25,6 +26,7 @@ from his.views import (
 router = routers.DefaultRouter()
 router.register(r"sedes", SedeHospitalariaViewSet, basename="sede")
 router.register(r"departamentos", DepartamentoViewSet, basename="departamento")
+router.register(r"empleados", EmpleadoViewSet, basename="empleado")
 router.register(r"pacientes", PacienteViewSet, basename="paciente")
 router.register(r"citas", CitaViewSet, basename="cita")
 router.register(r"medicamentos", MedicamentoViewSet, basename="medicamento")

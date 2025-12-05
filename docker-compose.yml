@@ -25,3 +25,25 @@ services:
     depends_on:
       - web
 
+  web2:
+    container_name: django-web2
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./backend:/usr/src/app/
+    env_file:
+      - .env2.dev
+    ports:
+      - "8001:8000"
+
+  frontend2:
+    container_name: react-frontend2
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3002:80"
+    depends_on:
+      - web

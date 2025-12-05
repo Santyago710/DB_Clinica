@@ -9,7 +9,15 @@ import {
   Legend,
 } from "chart.js";
 import { Bar } from "react-chartjs-2";
-import { PacientesPage, CitasPage, MedicamentosPage } from "./CRUDPages";
+import { 
+  PacientesPage, 
+  CitasPage, 
+  MedicamentosPage,
+  SedesHospitaliariasPage,
+  DepartamentosPage,
+  EmpleadosPage,
+  EquipamientoPage
+} from "./CRUDPages";
 import { API_BASE_URL } from "./apiConfig";
 
 //console.log("API_BASE_URL =>", API_BASE_URL);
@@ -1087,32 +1095,17 @@ function App() {
 
             {/* Página de Sedes */}
             {paginaActual === "sedes" && empleado.rol === "ADMIN" && (
-              <div>
-                <h2>Gestión de Sedes Hospitalarias</h2>
-                <p style={{ color: "#666" }}>
-                  Esta sección está en desarrollo...
-                </p>
-              </div>
+              <SedesHospitaliariasPage empleado={empleado} />
             )}
 
             {/* Página de Departamentos */}
             {paginaActual === "departamentos" && empleado.rol === "ADMIN" && (
-              <div>
-                <h2>Gestión de Departamentos</h2>
-                <p style={{ color: "#666" }}>
-                  Esta sección está en desarrollo...
-                </p>
-              </div>
+              <DepartamentosPage empleado={empleado} />
             )}
 
             {/* Página de Empleados */}
             {paginaActual === "empleados" && empleado.rol === "ADMIN" && (
-              <div>
-                <h2>Gestión de Empleados</h2>
-                <p style={{ color: "#666" }}>
-                  Esta sección está en desarrollo...
-                </p>
-              </div>
+              <EmpleadosPage empleado={empleado} />
             )}
 
             {/* Página de Historias Clínicas */}
@@ -1137,12 +1130,7 @@ function App() {
 
             {/* Página de Equipamiento */}
             {paginaActual === "equipamiento" && (["ADMIN", "ENFERMERO", "ADM"].includes(empleado.rol)) && (
-              <div>
-                <h2>Gestión de Equipamiento</h2>
-                <p style={{ color: "#666" }}>
-                  Esta sección está en desarrollo...
-                </p>
-              </div>
+              <EquipamientoPage empleado={empleado} />
             )}
           </div>
         </div>

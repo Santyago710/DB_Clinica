@@ -584,6 +584,773 @@ export const MedicamentosPage = ({ empleado }) => {
   );
 };
 
+// ==================== SEDES HOSPITALARIAS ====================
+export const SedesHospitaliariasPage = ({ empleado }) => {
+  const [sedes, setSedes] = useState([]);
+  const [cargando, setCargando] = useState(false);
+  const [error, setError] = useState(null);
+  const [mostrarForm, setMostrarForm] = useState(false);
+  const [formData, setFormData] = useState({
+    nom_sede: "",
+    ciudad: "",
+    direccion: "",
+    telefono: "",
+  });
+  const [editandoId, setEditandoId] = useState(null);
+
+  const headers = { "X-Empleado-Id": empleado.id };
+
+  useEffect(() => {
+    cargarSedes();
+  }, []);
+
+  const cargarSedes = async () => {
+    setCargando(true);
+    try {
+      const data = await fetchData(`${API_BASE}/sedes/`, headers);
+      setSedes(data.results || data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  const handleGuardar = async (e) => {
+    e.preventDefault();
+    try {
+      if (editandoId) {
+        await updateData(`${API_BASE}/sedes/${editandoId}/`, formData, headers);
+      } else {
+        await createData(`${API_BASE}/sedes/`, formData, headers);
+      }
+      cargarSedes();
+      resetForm();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleEliminar = async (id) => {
+    try {
+      await deleteData(`${API_BASE}/sedes/${id}/`, headers);
+      cargarSedes();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleEditar = (sede) => {
+    setFormData(sede);
+    setEditandoId(sede.id);
+    setMostrarForm(true);
+  };
+
+  const resetForm = () => {
+    setFormData({
+      nom_sede: "",
+      ciudad: "",
+      direccion: "",
+      telefono: "",
+    });
+    setEditandoId(null);
+    setMostrarForm(false);
+  };
+
+  const columnas = [
+    { key: "nom_sede", label: "Nombre" },
+    { key: "ciudad", label: "Ciudad" },
+    { key: "direccion", label: "Dirección" },
+    { key: "telefono", label: "Teléfono" },
+  ];
+
+  const puedeEditar = empleado.rol === "ADMIN";
+  const puedeEliminar = empleado.rol === "ADMIN";
+
+  return (
+    <div>
+      <h2>Gestión de Sedes Hospitalarias</h2>
+      {error && <p style={{ color: "red" }}>Error: {error}</p>}
+
+      {puedeEditar && (
+        <>
+          <button
+            onClick={() => setMostrarForm(!mostrarForm)}
+            style={btnPrimaryStyle}
+          >
+            {mostrarForm ? "Cancelar" : "Nueva Sede"}
+          </button>
+
+          {mostrarForm && (
+            <form onSubmit={handleGuardar} style={formStyle}>
+              <input
+                type="text"
+                placeholder="Nombre de la sede"
+                value={formData.nom_sede}
+                onChange={(e) =>
+                  setFormData({ ...formData, nom_sede: e.target.value })
+                }
+                required
+                style={inputStyle}
+              />
+              <input
+                type="text"
+                placeholder="Ciudad"
+                value={formData.ciudad}
+                onChange={(e) =>
+                  setFormData({ ...formData, ciudad: e.target.value })
+                }
+                required
+                style={inputStyle}
+              />
+              <input
+                type="text"
+                placeholder="Dirección"
+                value={formData.direccion}
+                onChange={(e) =>
+                  setFormData({ ...formData, direccion: e.target.value })
+                }
+                required
+                style={inputStyle}
+              />
+              <input
+                type="tel"
+                placeholder="Teléfono"
+                value={formData.telefono}
+                onChange={(e) =>
+                  setFormData({ ...formData, telefono: e.target.value })
+                }
+                required
+                style={inputStyle}
+              />
+              <button type="submit" style={btnPrimaryStyle}>
+                {editandoId ? "Actualizar" : "Crear"}
+              </button>
+            </form>
+          )}
+        </>
+      )}
+
+      <TableCRUD
+        datos={sedes}
+        columnas={columnas}
+        titulo="Sedes Hospitalarias"
+        onEditar={handleEditar}
+        onEliminar={handleEliminar}
+        puedeEditar={puedeEditar}
+        puedeEliminar={puedeEliminar}
+        cargando={cargando}
+        error={error}
+      />
+    </div>
+  );
+};
+
+// ==================== DEPARTAMENTOS ====================
+export const DepartamentosPage = ({ empleado }) => {
+  const [departamentos, setDepartamentos] = useState([]);
+  const [sedes, setSedes] = useState([]);
+  const [cargando, setCargando] = useState(false);
+  const [error, setError] = useState(null);
+  const [mostrarForm, setMostrarForm] = useState(false);
+  const [formData, setFormData] = useState({
+    nom_dept: "",
+    sede_id: "",
+  });
+  const [editandoId, setEditandoId] = useState(null);
+
+  const headers = { "X-Empleado-Id": empleado.id };
+
+  useEffect(() => {
+    cargarDatos();
+  }, []);
+
+  const cargarDatos = async () => {
+    setCargando(true);
+    try {
+      const [deptosData, sedesData] = await Promise.all([
+        fetchData(`${API_BASE}/departamentos/`, headers),
+        fetchData(`${API_BASE}/sedes/`, headers),
+      ]);
+      setDepartamentos(deptosData.results || deptosData);
+      setSedes(sedesData.results || sedesData);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  const handleGuardar = async (e) => {
+    e.preventDefault();
+    try {
+      if (editandoId) {
+        await updateData(
+          `${API_BASE}/departamentos/${editandoId}/`,
+          formData,
+          headers
+        );
+      } else {
+        await createData(`${API_BASE}/departamentos/`, formData, headers);
+      }
+      cargarDatos();
+      resetForm();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleEliminar = async (id) => {
+    try {
+      await deleteData(`${API_BASE}/departamentos/${id}/`, headers);
+      cargarDatos();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleEditar = (depto) => {
+    setFormData({
+      nom_dept: depto.nom_dept,
+      sede_id: depto.sede?.id,
+    });
+    setEditandoId(depto.id);
+    setMostrarForm(true);
+  };
+
+  const resetForm = () => {
+    setFormData({
+      nom_dept: "",
+      sede_id: "",
+    });
+    setEditandoId(null);
+    setMostrarForm(false);
+  };
+
+  const columnas = [
+    { key: "nom_dept", label: "Departamento" },
+    {
+      key: "sede",
+      label: "Sede",
+      render: (item) => item.sede?.nom_sede,
+    },
+  ];
+
+  const puedeEditar = empleado.rol === "ADMIN";
+  const puedeEliminar = empleado.rol === "ADMIN";
+
+  return (
+    <div>
+      <h2>Gestión de Departamentos</h2>
+      {error && <p style={{ color: "red" }}>Error: {error}</p>}
+
+      {puedeEditar && (
+        <>
+          <button
+            onClick={() => setMostrarForm(!mostrarForm)}
+            style={btnPrimaryStyle}
+          >
+            {mostrarForm ? "Cancelar" : "Nuevo Departamento"}
+          </button>
+
+          {mostrarForm && (
+            <form onSubmit={handleGuardar} style={formStyle}>
+              <input
+                type="text"
+                placeholder="Nombre del departamento"
+                value={formData.nom_dept}
+                onChange={(e) =>
+                  setFormData({ ...formData, nom_dept: e.target.value })
+                }
+                required
+                style={inputStyle}
+              />
+              <select
+                value={formData.sede_id}
+                onChange={(e) =>
+                  setFormData({ ...formData, sede_id: e.target.value })
+                }
+                required
+                style={inputStyle}
+              >
+                <option value="">Seleccionar Sede</option>
+                {sedes.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.nom_sede}
+                  </option>
+                ))}
+              </select>
+              <button type="submit" style={btnPrimaryStyle}>
+                {editandoId ? "Actualizar" : "Crear"}
+              </button>
+            </form>
+          )}
+        </>
+      )}
+
+      <TableCRUD
+        datos={departamentos}
+        columnas={columnas}
+        titulo="Departamentos"
+        onEditar={handleEditar}
+        onEliminar={handleEliminar}
+        puedeEditar={puedeEditar}
+        puedeEliminar={puedeEliminar}
+        cargando={cargando}
+        error={error}
+      />
+    </div>
+  );
+};
+
+// ==================== EMPLEADOS ====================
+export const EmpleadosPage = ({ empleado }) => {
+  const [empleados, setEmpleados] = useState([]);
+  const [departamentos, setDepartamentos] = useState([]);
+  const [cargando, setCargando] = useState(false);
+  const [error, setError] = useState(null);
+  const [mostrarForm, setMostrarForm] = useState(false);
+  const [formData, setFormData] = useState({
+    nom_emp: "",
+    correo: "",
+    tel_emp: "",
+    cargo: "",
+    rol: "ENFERMERO",
+    depto_id: "",
+    hash_contra: "",
+  });
+  const [editandoId, setEditandoId] = useState(null);
+
+  const headers = { "X-Empleado-Id": empleado.id };
+
+  useEffect(() => {
+    cargarDatos();
+  }, []);
+
+  const cargarDatos = async () => {
+    setCargando(true);
+    try {
+      const [empsData, deptosData] = await Promise.all([
+        fetchData(`${API_BASE}/empleados/`, headers),
+        fetchData(`${API_BASE}/departamentos/`, headers),
+      ]);
+      setEmpleados(empsData.results || empsData);
+      setDepartamentos(deptosData.results || deptosData);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  const handleGuardar = async (e) => {
+    e.preventDefault();
+    try {
+      const dataToSend = { ...formData };
+      if (editandoId) {
+        await updateData(
+          `${API_BASE}/empleados/${editandoId}/`,
+          dataToSend,
+          headers
+        );
+      } else {
+        await createData(`${API_BASE}/empleados/`, dataToSend, headers);
+      }
+      cargarDatos();
+      resetForm();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleEliminar = async (id) => {
+    try {
+      await deleteData(`${API_BASE}/empleados/${id}/`, headers);
+      cargarDatos();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleEditar = (emp) => {
+    setFormData({
+      nom_emp: emp.nom_emp,
+      correo: emp.correo,
+      tel_emp: emp.tel_emp,
+      cargo: emp.cargo,
+      rol: emp.rol,
+      depto_id: emp.depto?.id,
+      hash_contra: "",
+    });
+    setEditandoId(emp.id);
+    setMostrarForm(true);
+  };
+
+  const resetForm = () => {
+    setFormData({
+      nom_emp: "",
+      correo: "",
+      tel_emp: "",
+      cargo: "",
+      rol: "ENFERMERO",
+      depto_id: "",
+      hash_contra: "",
+    });
+    setEditandoId(null);
+    setMostrarForm(false);
+  };
+
+  const columnas = [
+    { key: "nom_emp", label: "Nombre" },
+    { key: "correo", label: "Correo" },
+    { key: "cargo", label: "Cargo" },
+    { key: "rol", label: "Rol" },
+    {
+      key: "depto",
+      label: "Departamento",
+      render: (item) => item.depto?.nom_dept,
+    },
+  ];
+
+  const puedeEditar = empleado.rol === "ADMIN";
+  const puedeEliminar = empleado.rol === "ADMIN";
+
+  return (
+    <div>
+      <h2>Gestión de Empleados</h2>
+      {error && <p style={{ color: "red" }}>Error: {error}</p>}
+
+      {puedeEditar && (
+        <>
+          <button
+            onClick={() => setMostrarForm(!mostrarForm)}
+            style={btnPrimaryStyle}
+          >
+            {mostrarForm ? "Cancelar" : "Nuevo Empleado"}
+          </button>
+
+          {mostrarForm && (
+            <form onSubmit={handleGuardar} style={formStyle}>
+              <input
+                type="text"
+                placeholder="Nombre completo"
+                value={formData.nom_emp}
+                onChange={(e) =>
+                  setFormData({ ...formData, nom_emp: e.target.value })
+                }
+                required
+                style={inputStyle}
+              />
+              <input
+                type="email"
+                placeholder="Correo electrónico"
+                value={formData.correo}
+                onChange={(e) =>
+                  setFormData({ ...formData, correo: e.target.value })
+                }
+                required
+                style={inputStyle}
+              />
+              <input
+                type="tel"
+                placeholder="Teléfono"
+                value={formData.tel_emp}
+                onChange={(e) =>
+                  setFormData({ ...formData, tel_emp: e.target.value })
+                }
+                required
+                style={inputStyle}
+              />
+              <input
+                type="text"
+                placeholder="Cargo"
+                value={formData.cargo}
+                onChange={(e) =>
+                  setFormData({ ...formData, cargo: e.target.value })
+                }
+                required
+                style={inputStyle}
+              />
+              <select
+                value={formData.rol}
+                onChange={(e) =>
+                  setFormData({ ...formData, rol: e.target.value })
+                }
+                style={inputStyle}
+              >
+                <option value="ENFERMERO">Enfermero</option>
+                <option value="MEDICO">Médico</option>
+                <option value="ADM">Personal Administrativo</option>
+                <option value="ADMIN">Administrador</option>
+              </select>
+              <select
+                value={formData.depto_id}
+                onChange={(e) =>
+                  setFormData({ ...formData, depto_id: e.target.value })
+                }
+                required
+                style={inputStyle}
+              >
+                <option value="">Seleccionar Departamento</option>
+                {departamentos.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.nom_dept} - {d.sede?.nom_sede}
+                  </option>
+                ))}
+              </select>
+              {!editandoId && (
+                <input
+                  type="password"
+                  placeholder="Contraseña"
+                  value={formData.hash_contra}
+                  onChange={(e) =>
+                    setFormData({ ...formData, hash_contra: e.target.value })
+                  }
+                  required={!editandoId}
+                  style={inputStyle}
+                />
+              )}
+              <button type="submit" style={btnPrimaryStyle}>
+                {editandoId ? "Actualizar" : "Crear"}
+              </button>
+            </form>
+          )}
+        </>
+      )}
+
+      <TableCRUD
+        datos={empleados}
+        columnas={columnas}
+        titulo="Empleados"
+        onEditar={handleEditar}
+        onEliminar={handleEliminar}
+        puedeEditar={puedeEditar}
+        puedeEliminar={puedeEliminar}
+        cargando={cargando}
+        error={error}
+      />
+    </div>
+  );
+};
+
+// ==================== EQUIPAMIENTO ====================
+export const EquipamientoPage = ({ empleado }) => {
+  const [equipos, setEquipos] = useState([]);
+  const [departamentos, setDepartamentos] = useState([]);
+  const [empleados, setEmpleados] = useState([]);
+  const [cargando, setCargando] = useState(false);
+  const [error, setError] = useState(null);
+  const [mostrarForm, setMostrarForm] = useState(false);
+  const [formData, setFormData] = useState({
+    nom_eq: "",
+    depto_id: "",
+    estado: "OPERATIVO",
+    fecha_mantenimiento: "",
+    responsable_id: "",
+  });
+  const [editandoId, setEditandoId] = useState(null);
+
+  const headers = { "X-Empleado-Id": empleado.id };
+
+  useEffect(() => {
+    cargarDatos();
+  }, []);
+
+  const cargarDatos = async () => {
+    setCargando(true);
+    try {
+      const [equipsData, deptosData, empsData] = await Promise.all([
+        fetchData(`${API_BASE}/equipamiento/`, headers),
+        fetchData(`${API_BASE}/departamentos/`, headers),
+        fetchData(`${API_BASE}/empleados/`, headers),
+      ]);
+      setEquipos(equipsData.results || equipsData);
+      setDepartamentos(deptosData.results || deptosData);
+      setEmpleados(empsData.results || empsData);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  const handleGuardar = async (e) => {
+    e.preventDefault();
+    try {
+      const dataToSend = {
+        ...formData,
+        responsable_id: formData.responsable_id || null,
+      };
+      if (editandoId) {
+        await updateData(
+          `${API_BASE}/equipamiento/${editandoId}/`,
+          dataToSend,
+          headers
+        );
+      } else {
+        await createData(`${API_BASE}/equipamiento/`, dataToSend, headers);
+      }
+      cargarDatos();
+      resetForm();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleEliminar = async (id) => {
+    try {
+      await deleteData(`${API_BASE}/equipamiento/${id}/`, headers);
+      cargarDatos();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleEditar = (equipo) => {
+    setFormData({
+      nom_eq: equipo.nom_eq,
+      depto_id: equipo.depto?.id,
+      estado: equipo.estado,
+      fecha_mantenimiento: equipo.fecha_mantenimiento,
+      responsable_id: equipo.responsable?.id || "",
+    });
+    setEditandoId(equipo.id);
+    setMostrarForm(true);
+  };
+
+  const resetForm = () => {
+    setFormData({
+      nom_eq: "",
+      depto_id: "",
+      estado: "OPERATIVO",
+      fecha_mantenimiento: "",
+      responsable_id: "",
+    });
+    setEditandoId(null);
+    setMostrarForm(false);
+  };
+
+  const columnas = [
+    { key: "nom_eq", label: "Equipo" },
+    {
+      key: "depto",
+      label: "Departamento",
+      render: (item) => item.depto?.nom_dept,
+    },
+    { key: "estado", label: "Estado" },
+    {
+      key: "responsable",
+      label: "Responsable",
+      render: (item) => item.responsable?.nom_emp || "Sin asignar",
+    },
+  ];
+
+  const puedeEditar =
+    empleado.rol === "ADMIN" ||
+    empleado.rol === "ENFERMERO" ||
+    empleado.rol === "ADM";
+  const puedeEliminar = empleado.rol === "ADMIN" || empleado.rol === "ADM";
+
+  return (
+    <div>
+      <h2>Gestión de Equipamiento</h2>
+      {error && <p style={{ color: "red" }}>Error: {error}</p>}
+
+      {puedeEditar && (
+        <>
+          <button
+            onClick={() => setMostrarForm(!mostrarForm)}
+            style={btnPrimaryStyle}
+          >
+            {mostrarForm ? "Cancelar" : "Nuevo Equipo"}
+          </button>
+
+          {mostrarForm && (
+            <form onSubmit={handleGuardar} style={formStyle}>
+              <input
+                type="text"
+                placeholder="Nombre del equipo"
+                value={formData.nom_eq}
+                onChange={(e) =>
+                  setFormData({ ...formData, nom_eq: e.target.value })
+                }
+                required
+                style={inputStyle}
+              />
+              <select
+                value={formData.depto_id}
+                onChange={(e) =>
+                  setFormData({ ...formData, depto_id: e.target.value })
+                }
+                required
+                style={inputStyle}
+              >
+                <option value="">Seleccionar Departamento</option>
+                {departamentos.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.nom_dept} - {d.sede?.nom_sede}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={formData.estado}
+                onChange={(e) =>
+                  setFormData({ ...formData, estado: e.target.value })
+                }
+                style={inputStyle}
+              >
+                <option value="OPERATIVO">Operativo</option>
+                <option value="EN_MANTENIMIENTO">En mantenimiento</option>
+                <option value="FUERA_SERVICIO">Fuera de servicio</option>
+              </select>
+              <input
+                type="date"
+                value={formData.fecha_mantenimiento}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    fecha_mantenimiento: e.target.value,
+                  })
+                }
+                style={inputStyle}
+              />
+              <select
+                value={formData.responsable_id}
+                onChange={(e) =>
+                  setFormData({ ...formData, responsable_id: e.target.value })
+                }
+                style={inputStyle}
+              >
+                <option value="">Sin responsable</option>
+                {empleados.map((e) => (
+                  <option key={e.id} value={e.id}>
+                    {e.nom_emp}
+                  </option>
+                ))}
+              </select>
+              <button type="submit" style={btnPrimaryStyle}>
+                {editandoId ? "Actualizar" : "Crear"}
+              </button>
+            </form>
+          )}
+        </>
+      )}
+
+      <TableCRUD
+        datos={equipos}
+        columnas={columnas}
+        titulo="Equipamiento"
+        onEditar={handleEditar}
+        onEliminar={handleEliminar}
+        puedeEditar={puedeEditar}
+        puedeEliminar={puedeEliminar}
+        cargando={cargando}
+        error={error}
+      />
+    </div>
+  );
+};
+
 // Estilos reutilizables
 const formStyle = {
   display: "flex",
