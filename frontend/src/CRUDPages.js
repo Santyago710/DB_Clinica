@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { fetchData, createData, updateData, deleteData, TableCRUD } from "./CRUDUtils";
+import { API_BASE } from "./apiConfig";
 
-const API_BASE = "http://localhost:8000/api";
 
 // ==================== PACIENTES ====================
 export const PacientesPage = ({ empleado }) => {

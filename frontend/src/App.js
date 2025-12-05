@@ -10,6 +10,9 @@ import {
 } from "chart.js";
 import { Bar } from "react-chartjs-2";
 import { PacientesPage, CitasPage, MedicamentosPage } from "./CRUDPages";
+import { API_BASE_URL } from "./apiConfig";
+
+//console.log("API_BASE_URL =>", API_BASE_URL);
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
@@ -113,7 +116,7 @@ function App() {
     if (mostrarRegistro) {
       const fetchDepartamentos = async () => {
         try {
-          const resp = await fetch("http://localhost:8000/api/departamentos/", {
+          const resp = await fetch(`${API_BASE_URL}/api/departamentos/`, {
             headers: {
               "Content-Type": "application/json",
             },
@@ -142,7 +145,7 @@ function App() {
     setLoginLoading(true);
 
     try {
-      const resp = await fetch("http://localhost:8000/api/auth/login/", {
+      const resp = await fetch(`${API_BASE_URL}/api/auth/login/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -206,7 +209,7 @@ function App() {
     };
 
     try {
-      const resp = await fetch("http://localhost:8000/api/auth/register/", {
+      const resp = await fetch(`${API_BASE_URL}/api/auth/register/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -259,7 +262,7 @@ function App() {
 
       try {
         const resp = await fetch(
-          "http://localhost:8000/api/metricas/medicamentos-mas-recetados/",
+          `${API_BASE_URL}/api/metricas/medicamentos-mas-recetados/`,
           {
             headers: {
               "X-Empleado-Id": empleado.id,
@@ -338,35 +341,35 @@ function App() {
 
       // Cargar resumen
       const resumenResp = await fetch(
-        "http://localhost:8000/api/analytics/resumen/",
+        `${API_BASE_URL}/api/analytics/resumen/`,
         { headers }
       );
       const resumenData = resumenResp.ok ? await resumenResp.json() : null;
 
       // Cargar frecuencia de enfermedades
       const enfermedadesResp = await fetch(
-        "http://localhost:8000/api/analytics/frecuencia-enfermedades/",
+        `${API_BASE_URL}/api/analytics/frecuencia-enfermedades/`,
         { headers }
       );
       const enfermedadesData = enfermedadesResp.ok ? await enfermedadesResp.json() : [];
 
       // Cargar consumo de medicamentos
       const medicamentosResp = await fetch(
-        "http://localhost:8000/api/analytics/consumo-medicamentos/",
+        `${API_BASE_URL}/api/analytics/consumo-medicamentos/`,
         { headers }
       );
       const medicamentosData = medicamentosResp.ok ? await medicamentosResp.json() : [];
 
       // Cargar utilización de equipamiento
       const equipamientoResp = await fetch(
-        "http://localhost:8000/api/analytics/utilizacion-equipamiento/",
+        `${API_BASE_URL}/api/analytics/utilizacion-equipamiento/`,
         { headers }
       );
       const equipamientoData = equipamientoResp.ok ? await equipamientoResp.json() : [];
 
       // Cargar índices de atención
       const indicesResp = await fetch(
-        "http://localhost:8000/api/analytics/indices-atencion/",
+        `${API_BASE_URL}/api/analytics/indices-atencion/`,
         { headers }
       );
       const indicesData = indicesResp.ok ? await indicesResp.json() : [];
@@ -1246,4 +1249,5 @@ const permisosTd = {
   borderBottom: "1px solid #ddd",
 };
 
-export default App;
+export default App; 
+
