@@ -2,7 +2,7 @@
 DB_NAME=his_norte
 DB_USER=postgres
 DB_PASSWORD=1qaw3edr5
-DB_HOST=10.0.1.90
+DB_HOST=10.0.1.163
 DB_PORT=5432
 DEBUG=1
 SECRET_KEY=django-dev-key
