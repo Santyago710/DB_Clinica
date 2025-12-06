@@ -1,5 +1,5 @@
 # PostgreSQL
-DB_NAME=his_urgencias_db
+DB_NAME=his_norte
 DB_USER=postgres
 DB_PASSWORD=1qaw3edr5
 DB_HOST=10.0.1.90
