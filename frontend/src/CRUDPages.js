@@ -1351,6 +1351,468 @@ export const EquipamientoPage = ({ empleado }) => {
   );
 };
 
+// ==================== HISTORIA CLINICA ====================
+export const HistoriaClinicaPage = ({ empleado }) => {
+  const [historias, setHistorias] = useState([]);
+  const [pacientes, setPacientes] = useState([]);
+  const [sedes, setSedes] = useState([]);
+  const [cargando, setCargando] = useState(false);
+  const [error, setError] = useState(null);
+  const [mostrarForm, setMostrarForm] = useState(false);
+  const [formData, setFormData] = useState({
+    paciente_id: "",
+    empleado_id: empleado.id,
+    sede_id: "",
+    fecha_registro: new Date().toISOString().split("T")[0],
+    diagnostico: "",
+  });
+  const [editandoId, setEditandoId] = useState(null);
+
+  const headers = { "X-Empleado-Id": empleado.id };
+
+  // Determinar permisos basado en rol
+  const puedeCrear = ["ADMIN", "MEDICO"].includes(empleado.rol);
+  const puedeEditar = ["ADMIN", "MEDICO"].includes(empleado.rol);
+  const puedeEliminar = false; // Nunca puede eliminar historia clínica
+  const puedeLeer = ["ADMIN", "MEDICO", "ENFERMERO"].includes(empleado.rol);
+
+  useEffect(() => {
+    if (puedeLeer) {
+      cargarDatos();
+    }
+  }, []);
+
+  const cargarDatos = async () => {
+    setCargando(true);
+    try {
+      const [historiasData, pacientesData, sedesData] = await Promise.all([
+        fetchData(`${API_BASE}/historias-clinicas/`, headers),
+        fetchData(`${API_BASE}/pacientes/`, headers),
+        fetchData(`${API_BASE}/sedes/`, headers),
+      ]);
+      setHistorias(historiasData.results || historiasData);
+      setPacientes(pacientesData.results || pacientesData);
+      setSedes(sedesData.results || sedesData);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  const handleGuardar = async (e) => {
+    e.preventDefault();
+    try {
+      if (editandoId) {
+        await updateData(
+          `${API_BASE}/historias-clinicas/${editandoId}/`,
+          formData,
+          headers
+        );
+      } else {
+        await createData(`${API_BASE}/historias-clinicas/`, formData, headers);
+      }
+      cargarDatos();
+      resetForm();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleEliminar = async (id) => {
+    try {
+      await deleteData(`${API_BASE}/historias-clinicas/${id}/`, headers);
+      cargarDatos();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleEditar = (historia) => {
+    setFormData({
+      paciente_id: historia.paciente?.id,
+      empleado_id: historia.empleado?.id,
+      sede_id: historia.sede?.id,
+      fecha_registro: historia.fecha_registro ? historia.fecha_registro.split("T")[0] : "",
+      diagnostico: historia.diagnostico,
+    });
+    setEditandoId(historia.id);
+    setMostrarForm(true);
+  };
+
+  const resetForm = () => {
+    setFormData({
+      paciente_id: "",
+      empleado_id: empleado.id,
+      sede_id: "",
+      fecha_registro: new Date().toISOString().split("T")[0],
+      diagnostico: "",
+    });
+    setEditandoId(null);
+    setMostrarForm(false);
+  };
+
+  const columnas = [
+    {
+      key: "paciente",
+      label: "Paciente",
+      render: (item) => item.paciente?.nom_pac,
+    },
+    {
+      key: "empleado",
+      label: "Registrado por",
+      render: (item) => item.empleado?.nom_emp,
+    },
+    {
+      key: "sede",
+      label: "Sede",
+      render: (item) => item.sede?.nom_sede,
+    },
+    { key: "fecha_registro", label: "Fecha Registro" },
+    {
+      key: "diagnostico",
+      label: "Diagnóstico",
+      render: (item) => item.diagnostico.substring(0, 50) + (item.diagnostico.length > 50 ? "..." : ""),
+    },
+  ];
+
+  return (
+    <div>
+      <h2>Historias Clínicas</h2>
+      {error && <p style={{ color: "red" }}>Error: {error}</p>}
+
+      {puedeCrear && (
+        <>
+          <button
+            onClick={() => setMostrarForm(!mostrarForm)}
+            style={btnPrimaryStyle}
+          >
+            {mostrarForm ? "Cancelar" : "Nueva Historia"}
+          </button>
+
+          {mostrarForm && (
+            <form onSubmit={handleGuardar} style={formStyle}>
+              <select
+                value={formData.paciente_id}
+                onChange={(e) =>
+                  setFormData({ ...formData, paciente_id: e.target.value })
+                }
+                required
+                style={inputStyle}
+              >
+                <option value="">Seleccionar Paciente</option>
+                {pacientes.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.nom_pac}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={formData.sede_id}
+                onChange={(e) =>
+                  setFormData({ ...formData, sede_id: e.target.value })
+                }
+                required
+                style={inputStyle}
+              >
+                <option value="">Seleccionar Sede</option>
+                {sedes.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.nom_sede}
+                  </option>
+                ))}
+              </select>
+
+              <input
+                type="date"
+                value={formData.fecha_registro}
+                onChange={(e) =>
+                  setFormData({ ...formData, fecha_registro: e.target.value })
+                }
+                required
+                style={inputStyle}
+              />
+
+              <textarea
+                placeholder="Diagnóstico"
+                value={formData.diagnostico}
+                onChange={(e) =>
+                  setFormData({ ...formData, diagnostico: e.target.value })
+                }
+                required
+                style={{...inputStyle, minHeight: "100px", fontFamily: "Arial"}}
+                rows="4"
+              />
+
+              <button type="submit" style={btnPrimaryStyle}>
+                {editandoId ? "Actualizar" : "Crear"}
+              </button>
+            </form>
+          )}
+        </>
+      )}
+
+      <TableCRUD
+        datos={historias}
+        columnas={columnas}
+        titulo="Historias Clínicas"
+        onEditar={handleEditar}
+        onEliminar={handleEliminar}
+        puedeEditar={puedeEditar}
+        puedeEliminar={puedeEliminar}
+        cargando={cargando}
+        error={error}
+      />
+    </div>
+  );
+};
+
+// ==================== PRESCRIPCIONES ====================
+export const PrescripcionesPage = ({ empleado }) => {
+  const [prescripciones, setPrescripciones] = useState([]);
+  const [historias, setHistorias] = useState([]);
+  const [medicamentos, setMedicamentos] = useState([]);
+  const [cargando, setCargando] = useState(false);
+  const [error, setError] = useState(null);
+  const [mostrarForm, setMostrarForm] = useState(false);
+  const [formData, setFormData] = useState({
+    historia_id: "",
+    medicamento_id: "",
+    dosis: "",
+    frecuencia: "",
+    duracion: "",
+    fecha_emision: new Date().toISOString().split("T")[0],
+  });
+  const [editandoId, setEditandoId] = useState(null);
+
+  const headers = { "X-Empleado-Id": empleado.id };
+
+  // Determinar permisos basado en rol
+  const puedeCrear = ["ADMIN", "MEDICO"].includes(empleado.rol);
+  const puedeEditar = ["ADMIN", "MEDICO"].includes(empleado.rol);
+  const puedeEliminar = false; // Nunca puede eliminar prescripción
+  const puedeLeer = ["ADMIN", "MEDICO"].includes(empleado.rol);
+
+  useEffect(() => {
+    if (puedeLeer) {
+      cargarDatos();
+    }
+  }, []);
+
+  const cargarDatos = async () => {
+    setCargando(true);
+    try {
+      const [prescripcionesData, historiasData, medicamentosData] = await Promise.all([
+        fetchData(`${API_BASE}/prescripciones/`, headers),
+        fetchData(`${API_BASE}/historias-clinicas/`, headers),
+        fetchData(`${API_BASE}/medicamentos/`, headers),
+      ]);
+      setPrescripciones(prescripcionesData.results || prescripcionesData);
+      setHistorias(historiasData.results || historiasData);
+      setMedicamentos(medicamentosData.results || medicamentosData);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  const handleGuardar = async (e) => {
+    e.preventDefault();
+    try {
+      if (editandoId) {
+        await updateData(
+          `${API_BASE}/prescripciones/${editandoId}/`,
+          formData,
+          headers
+        );
+      } else {
+        await createData(`${API_BASE}/prescripciones/`, formData, headers);
+      }
+      cargarDatos();
+      resetForm();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleEliminar = async (id) => {
+    try {
+      await deleteData(`${API_BASE}/prescripciones/${id}/`, headers);
+      cargarDatos();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleEditar = (prescripcion) => {
+    setFormData({
+      historia_id: prescripcion.historia?.id,
+      medicamento_id: prescripcion.medicamento?.id,
+      dosis: prescripcion.dosis,
+      frecuencia: prescripcion.frecuencia,
+      duracion: prescripcion.duracion,
+      fecha_emision: prescripcion.fecha_emision ? prescripcion.fecha_emision.split("T")[0] : "",
+    });
+    setEditandoId(prescripcion.id);
+    setMostrarForm(true);
+  };
+
+  const resetForm = () => {
+    setFormData({
+      historia_id: "",
+      medicamento_id: "",
+      dosis: "",
+      frecuencia: "",
+      duracion: "",
+      fecha_emision: new Date().toISOString().split("T")[0],
+    });
+    setEditandoId(null);
+    setMostrarForm(false);
+  };
+
+  const columnas = [
+    {
+      key: "historia",
+      label: "Paciente",
+      render: (item) => item.historia?.paciente?.nom_pac,
+    },
+    {
+      key: "medicamento",
+      label: "Medicamento",
+      render: (item) => item.medicamento?.nom_med,
+    },
+    { key: "dosis", label: "Dosis" },
+    { key: "frecuencia", label: "Frecuencia" },
+    { key: "duracion", label: "Duración" },
+    { key: "fecha_emision", label: "Fecha Emisión" },
+  ];
+
+  return (
+    <div>
+      <h2>Prescripciones Médicas</h2>
+      {error && <p style={{ color: "red" }}>Error: {error}</p>}
+
+      {!puedeLeer && (
+        <p style={{ color: "#d32f2f", fontWeight: "bold" }}>
+          No tienes permisos para acceder a esta sección.
+        </p>
+      )}
+
+      {puedeLeer && (
+        <>
+          {puedeCrear && (
+            <>
+              <button
+                onClick={() => setMostrarForm(!mostrarForm)}
+                style={btnPrimaryStyle}
+              >
+                {mostrarForm ? "Cancelar" : "Nueva Prescripción"}
+              </button>
+
+              {mostrarForm && (
+                <form onSubmit={handleGuardar} style={formStyle}>
+                  <select
+                    value={formData.historia_id}
+                    onChange={(e) =>
+                      setFormData({ ...formData, historia_id: e.target.value })
+                    }
+                    required
+                    style={inputStyle}
+                  >
+                    <option value="">Seleccionar Historia Clínica</option>
+                    {historias.map((h) => (
+                      <option key={h.id} value={h.id}>
+                        {h.paciente?.nom_pac} - {h.sede?.nom_sede}
+                      </option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={formData.medicamento_id}
+                    onChange={(e) =>
+                      setFormData({ ...formData, medicamento_id: e.target.value })
+                    }
+                    required
+                    style={inputStyle}
+                  >
+                    <option value="">Seleccionar Medicamento</option>
+                    {medicamentos.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.nom_med} (Stock: {m.stock})
+                      </option>
+                    ))}
+                  </select>
+
+                  <input
+                    type="text"
+                    placeholder="Dosis (ej: 500mg)"
+                    value={formData.dosis}
+                    onChange={(e) =>
+                      setFormData({ ...formData, dosis: e.target.value })
+                    }
+                    required
+                    style={inputStyle}
+                  />
+
+                  <input
+                    type="text"
+                    placeholder="Frecuencia (ej: Cada 8 horas)"
+                    value={formData.frecuencia}
+                    onChange={(e) =>
+                      setFormData({ ...formData, frecuencia: e.target.value })
+                    }
+                    required
+                    style={inputStyle}
+                  />
+
+                  <input
+                    type="text"
+                    placeholder="Duración (ej: 7 días)"
+                    value={formData.duracion}
+                    onChange={(e) =>
+                      setFormData({ ...formData, duracion: e.target.value })
+                    }
+                    required
+                    style={inputStyle}
+                  />
+
+                  <input
+                    type="date"
+                    value={formData.fecha_emision}
+                    onChange={(e) =>
+                      setFormData({ ...formData, fecha_emision: e.target.value })
+                    }
+                    required
+                    style={inputStyle}
+                  />
+
+                  <button type="submit" style={btnPrimaryStyle}>
+                    {editandoId ? "Actualizar" : "Crear"}
+                  </button>
+                </form>
+              )}
+            </>
+          )}
+
+          <TableCRUD
+            datos={prescripciones}
+            columnas={columnas}
+            titulo="Prescripciones Médicas"
+            onEditar={handleEditar}
+            onEliminar={handleEliminar}
+            puedeEditar={puedeEditar}
+            puedeEliminar={puedeEliminar}
+            cargando={cargando}
+            error={error}
+          />
+        </>
+      )}
+    </div>
+  );
+};
+
 // Estilos reutilizables
 const formStyle = {
   display: "flex",

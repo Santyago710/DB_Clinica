@@ -16,7 +16,9 @@ import {
   SedesHospitaliariasPage,
   DepartamentosPage,
   EmpleadosPage,
-  EquipamientoPage
+  EquipamientoPage,
+  HistoriaClinicaPage,
+  PrescripcionesPage
 } from "./CRUDPages";
 import { API_BASE_URL } from "./apiConfig";
 
@@ -1110,22 +1112,12 @@ function App() {
 
             {/* Página de Historias Clínicas */}
             {paginaActual === "historias" && (["ADMIN", "MEDICO", "ENFERMERO"].includes(empleado.rol)) && (
-              <div>
-                <h2>Historias Clínicas</h2>
-                <p style={{ color: "#666" }}>
-                  Esta sección está en desarrollo...
-                </p>
-              </div>
+              <HistoriaClinicaPage empleado={empleado} />
             )}
 
             {/* Página de Prescripciones */}
             {paginaActual === "prescripciones" && (["ADMIN", "MEDICO"].includes(empleado.rol)) && (
-              <div>
-                <h2>Prescripciones</h2>
-                <p style={{ color: "#666" }}>
-                  Esta sección está en desarrollo...
-                </p>
-              </div>
+              <PrescripcionesPage empleado={empleado} />
             )}
 
             {/* Página de Equipamiento */}
