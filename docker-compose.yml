@@ -43,7 +43,10 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+    environment:
+      - REACT_APP_API_PORT=8001
     ports:
       - "3002:80"
     depends_on:
-      - web
+      - web2
+
