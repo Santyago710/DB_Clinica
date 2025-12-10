@@ -12,6 +12,7 @@ from his.views import (
     EquipamientoViewSet,
     HistoriaClinicaViewSet,
     PrescripcionViewSet,
+    AuditoriaAccesoViewSet,
     MedicamentosMasRecetadosView,
     AuthRegisterView,
     AuthLoginView,
@@ -33,6 +34,8 @@ router.register(r"medicamentos", MedicamentoViewSet, basename="medicamento")
 router.register(r"equipamiento", EquipamientoViewSet, basename="equipamiento")
 router.register(r"historias-clinicas", HistoriaClinicaViewSet, basename="historia-clinica")
 router.register(r"prescripciones", PrescripcionViewSet, basename="prescripcion")
+router.register(r"auditoria", AuditoriaAccesoViewSet, basename="auditoria")
+
 
 urlpatterns = [
     path("admin/", admin.site.urls),

@@ -9,6 +9,7 @@ from .models import (
     Equipamiento,
     HistoriaClinica,
     Prescripcion,
+    AuditoriaAcceso,
 )
 
 
@@ -150,3 +151,12 @@ class PrescripcionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Prescripcion
         fields = ["id", "historia", "historia_id", "medicamento", "medicamento_id", "dosis", "frecuencia", "duracion", "fecha_emision"]
+
+
+class AuditoriaAccesoSerializer(serializers.ModelSerializer):
+    empleado = EmpleadoPublicSerializer(read_only=True)
+
+    class Meta:
+        model = AuditoriaAcceso
+        fields = ["id", "empleado", "accion", "tabla_afectada", "fecha_evento", "ip_origen"]
+        ordering = ["-fecha_evento"]

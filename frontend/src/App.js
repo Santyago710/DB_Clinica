@@ -18,7 +18,8 @@ import {
   EmpleadosPage,
   EquipamientoPage,
   HistoriaClinicaPage,
-  PrescripcionesPage
+  PrescripcionesPage,
+  AuditoriaPage
 } from "./CRUDPages";
 import { API_BASE_URL } from "./apiConfig";
 
@@ -414,6 +415,7 @@ function App() {
         { id: "equipamiento", label: "Equipamiento", icon: "🔧" },
         { id: "historias", label: "Historias Clínicas", icon: "📋" },
         { id: "prescripciones", label: "Prescripciones", icon: "📝" },
+        { id: "auditoria", label: "Auditoría", icon: "🔍" },
       ],
       MEDICO: [
         { id: "inicio", label: "Inicio", icon: "🏠" },
@@ -1123,6 +1125,11 @@ function App() {
             {/* Página de Equipamiento */}
             {paginaActual === "equipamiento" && (["ADMIN", "ENFERMERO", "ADM"].includes(empleado.rol)) && (
               <EquipamientoPage empleado={empleado} />
+            )}
+
+            {/* Página de Auditoría (Solo Admin) */}
+            {paginaActual === "auditoria" && empleado.rol === "ADMIN" && (
+              <AuditoriaPage empleado={empleado} />
             )}
           </div>
         </div>

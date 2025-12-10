@@ -18,6 +18,7 @@ from .models import (
     Empleado,
     HistoriaClinica,
     Equipamiento,
+    AuditoriaAcceso,
 )
 from .serializers import (
     SedeHospitalariaSerializer,
@@ -31,10 +32,12 @@ from .serializers import (
     EquipamientoSerializer,
     HistoriaClinicaSerializer,
     PrescripcionSerializer,
+    AuditoriaAccesoSerializer,
 )
 from .permissions import (
     PermisoPorRolModelo,
     EsEmpleadoAutenticado,
+    EsAdmin,
 )
 
 
@@ -497,3 +500,30 @@ class ResumenAnaliticaView(APIView):
             }
         }, status=status.HTTP_200_OK)
 
+
+class AuditoriaAccesoViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet para ver registros de auditoría (solo lectura)"""
+    queryset = AuditoriaAcceso.objects.select_related("empleado").order_by("-fecha_evento").all()
+    serializer_class = AuditoriaAccesoSerializer
+    permission_classes = [EsAdmin]
+    
+    def get_queryset(self):
+        """Retornar registros más recientes primero"""
+        queryset = super().get_queryset()
+        
+        # Filtrar por tabla si se especifica
+        tabla = self.request.query_params.get("tabla")
+        if tabla:
+            queryset = queryset.filter(tabla_afectada=tabla)
+        
+        # Filtrar por empleado si se especifica
+        empleado_id = self.request.query_params.get("empleado_id")
+        if empleado_id:
+            queryset = queryset.filter(empleado_id=empleado_id)
+        
+        # Filtrar por acción si se especifica
+        accion = self.request.query_params.get("accion")
+        if accion:
+            queryset = queryset.filter(accion=accion)
+        
+        return queryset

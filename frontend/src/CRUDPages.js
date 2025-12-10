@@ -1843,3 +1843,355 @@ const btnPrimaryStyle = {
   fontSize: "1rem",
   marginBottom: "1rem",
 };
+
+// ==================== AUDITORÍA ====================
+export const AuditoriaPage = ({ empleado }) => {
+  const [registros, setRegistros] = useState([]);
+  const [cargando, setCargando] = useState(false);
+  const [error, setError] = useState(null);
+  const [filtroTabla, setFiltroTabla] = useState("");
+  const [filtroAccion, setFiltroAccion] = useState("");
+
+  const cargarAuditoria = async () => {
+    setCargando(true);
+    setError(null);
+    
+    try {
+      let url = `${API_BASE}/auditoria/?ordering=-fecha_evento`;
+      
+      if (filtroTabla) {
+        url += `&tabla=${filtroTabla}`;
+      }
+      if (filtroAccion) {
+        url += `&accion=${filtroAccion}`;
+      }
+      
+      const data = await fetchData(url, {
+        "X-Empleado-Id": empleado.id,
+      });
+      
+      setRegistros(data.results || data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  useEffect(() => {
+    cargarAuditoria();
+  }, [filtroTabla, filtroAccion]);
+
+  const formatearFecha = (fechaStr) => {
+    const fecha = new Date(fechaStr);
+    return fecha.toLocaleString('es-ES', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+  };
+
+  const getColorAccion = (accion) => {
+    if (accion.includes('GET') || accion.includes('READ')) return '#1976d2';
+    if (accion.includes('POST') || accion.includes('CREATE')) return '#4caf50';
+    if (accion.includes('PUT') || accion.includes('UPDATE')) return '#ff9800';
+    if (accion.includes('DELETE')) return '#d32f2f';
+    return '#757575';
+  };
+
+  const getIconoAccion = (accion) => {
+    if (accion.includes('GET') || accion.includes('READ')) return '👁️';
+    if (accion.includes('POST') || accion.includes('CREATE')) return '➕';
+    if (accion.includes('PUT') || accion.includes('UPDATE')) return '✏️';
+    if (accion.includes('DELETE')) return '🗑️';
+    return '📋';
+  };
+
+  return (
+    <div style={{ padding: "1rem" }}>
+      <h2 style={{ marginBottom: "2rem", color: "#1565c0" }}>
+        🔍 Registro de Auditoría de Accesos
+      </h2>
+
+      {/* Controles de Filtro */}
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
+        gap: "1rem",
+        marginBottom: "2rem",
+        padding: "1.5rem",
+        backgroundColor: "#f5f5f5",
+        borderRadius: "8px",
+        border: "1px solid #ddd"
+      }}>
+        <div>
+          <label style={{ fontWeight: "bold", display: "block", marginBottom: "0.5rem" }}>
+            Filtrar por Tabla:
+          </label>
+          <select
+            value={filtroTabla}
+            onChange={(e) => setFiltroTabla(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "0.5rem",
+              borderRadius: "4px",
+              border: "1px solid #ccc",
+              fontSize: "1rem"
+            }}
+          >
+            <option value="">Todas las tablas</option>
+            <option value="Pacientes">Pacientes</option>
+            <option value="Citas">Citas</option>
+            <option value="Medicamentos">Medicamentos</option>
+            <option value="Empleados">Empleados</option>
+            <option value="Sedes_Hospitalarias">Sedes Hospitalarias</option>
+            <option value="Departamentos">Departamentos</option>
+            <option value="Historias_Clinicas">Historias Clínicas</option>
+            <option value="Equipamiento">Equipamiento</option>
+          </select>
+        </div>
+
+        <div>
+          <label style={{ fontWeight: "bold", display: "block", marginBottom: "0.5rem" }}>
+            Filtrar por Acción:
+          </label>
+          <select
+            value={filtroAccion}
+            onChange={(e) => setFiltroAccion(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "0.5rem",
+              borderRadius: "4px",
+              border: "1px solid #ccc",
+              fontSize: "1rem"
+            }}
+          >
+            <option value="">Todas las acciones</option>
+            <option value="GET">Leer (GET)</option>
+            <option value="POST">Crear (POST)</option>
+            <option value="PUT">Actualizar (PUT)</option>
+            <option value="DELETE">Eliminar (DELETE)</option>
+          </select>
+        </div>
+
+        <div>
+          <label style={{ fontWeight: "bold", display: "block", marginBottom: "0.5rem" }}>&nbsp;</label>
+          <button
+            onClick={cargarAuditoria}
+            style={{
+              width: "100%",
+              padding: "0.5rem",
+              backgroundColor: "#1976d2",
+              color: "white",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+              fontSize: "1rem"
+            }}
+          >
+            🔄 Actualizar
+          </button>
+        </div>
+      </div>
+
+      {cargando && <p style={{ textAlign: "center", fontSize: "1.1rem", color: "#1976d2" }}>⏳ Cargando registros...</p>}
+      {error && <p style={{ color: "red", fontSize: "1.1rem" }}>❌ Error: {error}</p>}
+
+      {!cargando && registros.length === 0 && (
+        <p style={{ textAlign: "center", color: "#666", fontSize: "1.1rem" }}>
+          📭 No hay registros de auditoría
+        </p>
+      )}
+
+      {!cargando && registros.length > 0 && (
+        <div style={{
+          display: "grid",
+          gap: "1rem",
+          gridTemplateColumns: "repeat(auto-fill, minmax(500px, 1fr))"
+        }}>
+          {registros.map((registro, idx) => (
+            <div
+              key={idx}
+              style={{
+                padding: "1.5rem",
+                backgroundColor: "#fff",
+                border: `3px solid ${getColorAccion(registro.accion)}`,
+                borderRadius: "8px",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                transition: "transform 0.2s, box-shadow 0.2s",
+                cursor: "pointer",
+                "&:hover": {
+                  transform: "translateY(-2px)",
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.15)"
+                }
+              }}
+            >
+              {/* Header de la tarjeta */}
+              <div style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "1rem",
+                paddingBottom: "0.5rem",
+                borderBottom: `2px solid ${getColorAccion(registro.accion)}`
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                  <span style={{ fontSize: "1.8rem" }}>
+                    {getIconoAccion(registro.accion)}
+                  </span>
+                  <div>
+                    <div style={{
+                      fontWeight: "bold",
+                      color: getColorAccion(registro.accion),
+                      fontSize: "1.2rem"
+                    }}>
+                      {registro.accion}
+                    </div>
+                    <div style={{ color: "#666", fontSize: "0.9rem" }}>
+                      {registro.tabla_afectada}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Detalles de la tarjeta */}
+              <div style={{ marginBottom: "1rem" }}>
+                <div style={{ marginBottom: "0.75rem" }}>
+                  <span style={{ fontWeight: "bold", color: "#333" }}>👤 Usuario:</span>
+                  <div style={{
+                    backgroundColor: "#f9f9f9",
+                    padding: "0.5rem",
+                    borderRadius: "4px",
+                    marginTop: "0.25rem",
+                    color: "#1976d2"
+                  }}>
+                    {registro.empleado?.nom_emp || "Sistema"}
+                    {registro.empleado?.rol && (
+                      <span style={{ marginLeft: "0.5rem", color: "#666" }}>
+                        ({registro.empleado.rol})
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: "0.75rem" }}>
+                  <span style={{ fontWeight: "bold", color: "#333" }}>📍 IP Origen:</span>
+                  <div style={{
+                    backgroundColor: "#f9f9f9",
+                    padding: "0.5rem",
+                    borderRadius: "4px",
+                    marginTop: "0.25rem",
+                    fontFamily: "monospace",
+                    color: "#d32f2f"
+                  }}>
+                    {registro.ip_origen}
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: "0.75rem" }}>
+                  <span style={{ fontWeight: "bold", color: "#333" }}>🕐 Fecha y Hora:</span>
+                  <div style={{
+                    backgroundColor: "#f9f9f9",
+                    padding: "0.5rem",
+                    borderRadius: "4px",
+                    marginTop: "0.25rem",
+                    color: "#666",
+                    fontSize: "0.95rem"
+                  }}>
+                    {formatearFecha(registro.fecha_evento)}
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer estadístico */}
+              <div style={{
+                display: "flex",
+                justifyContent: "space-between",
+                fontSize: "0.85rem",
+                color: "#999",
+                paddingTop: "0.75rem",
+                borderTop: "1px solid #eee"
+              }}>
+                <span>ID Evento: {registro.id}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Estadísticas */}
+      {!cargando && registros.length > 0 && (
+        <div style={{
+          marginTop: "2rem",
+          padding: "1.5rem",
+          backgroundColor: "#f5f5f5",
+          borderRadius: "8px",
+          border: "1px solid #ddd"
+        }}>
+          <h3 style={{ marginTop: 0 }}>📊 Estadísticas</h3>
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+            gap: "1rem"
+          }}>
+            <div style={{
+              backgroundColor: "#fff",
+              padding: "1rem",
+              borderRadius: "4px",
+              textAlign: "center",
+              borderLeft: "4px solid #1976d2"
+            }}>
+              <div style={{ fontSize: "1.5rem", fontWeight: "bold", color: "#1976d2" }}>
+                {registros.length}
+              </div>
+              <div style={{ color: "#666", fontSize: "0.9rem" }}>Total de Registros</div>
+            </div>
+
+            <div style={{
+              backgroundColor: "#fff",
+              padding: "1rem",
+              borderRadius: "4px",
+              textAlign: "center",
+              borderLeft: "4px solid #4caf50"
+            }}>
+              <div style={{ fontSize: "1.5rem", fontWeight: "bold", color: "#4caf50" }}>
+                {registros.filter(r => r.accion.includes('POST')).length}
+              </div>
+              <div style={{ color: "#666", fontSize: "0.9rem" }}>Creaciones</div>
+            </div>
+
+            <div style={{
+              backgroundColor: "#fff",
+              padding: "1rem",
+              borderRadius: "4px",
+              textAlign: "center",
+              borderLeft: "4px solid #ff9800"
+            }}>
+              <div style={{ fontSize: "1.5rem", fontWeight: "bold", color: "#ff9800" }}>
+                {registros.filter(r => r.accion.includes('PUT')).length}
+              </div>
+              <div style={{ color: "#666", fontSize: "0.9rem" }}>Actualizaciones</div>
+            </div>
+
+            <div style={{
+              backgroundColor: "#fff",
+              padding: "1rem",
+              borderRadius: "4px",
+              textAlign: "center",
+              borderLeft: "4px solid #d32f2f"
+            }}>
+              <div style={{ fontSize: "1.5rem", fontWeight: "bold", color: "#d32f2f" }}>
+                {registros.filter(r => r.accion.includes('DELETE')).length}
+              </div>
+              <div style={{ color: "#666", fontSize: "0.9rem" }}>Eliminaciones</div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
