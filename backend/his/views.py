@@ -527,3 +527,208 @@ class AuditoriaAccesoViewSet(viewsets.ReadOnlyModelViewSet):
             queryset = queryset.filter(accion=accion)
         
         return queryset
+
+
+class MedicosConMasConsultasView(APIView):
+    """
+    Médicos con mayor número de consultas atendidas por semana.
+    """
+    permission_classes = [EsEmpleadoAutenticado]
+
+    def get(self, request):
+        desde_hace = timezone.now() - timedelta(days=7)
+        
+        medicos = (
+            Cita.objects.filter(
+                empleado__rol="MEDICO",
+                fecha__gte=desde_hace.date()
+            )
+            .values("empleado_id", "empleado__nom_emp")
+            .annotate(total_consultas=Count("id"))
+            .order_by("-total_consultas")[:10]
+        )
+        
+        data = [
+            {
+                "empleado_id": m["empleado_id"],
+                "nombre_medico": m["empleado__nom_emp"],
+                "total_consultas": m["total_consultas"]
+            }
+            for m in medicos
+        ]
+        
+        return Response(data, status=status.HTTP_200_OK)
+
+
+class TiempoPromedioCitaDiagnosticoView(APIView):
+    """
+    Tiempo promedio entre la cita y el registro de diagnóstico.
+    """
+    permission_classes = [EsEmpleadoAutenticado]
+
+    def get(self, request):
+        try:
+            # Obtener todas las historias clínicas con sus pacientes
+            historias = HistoriaClinica.objects.select_related("paciente").all()
+            tiempos_lista = []
+            
+            for historia in historias:
+                # Buscar la cita más reciente del paciente antes del registro de diagnóstico
+                cita = Cita.objects.filter(
+                    paciente=historia.paciente,
+                    fecha__lte=historia.fecha_registro.date()
+                ).order_by("-fecha", "-hora").first()
+                
+                if cita:
+                    try:
+                        # Combinar fecha y hora de la cita en un datetime
+                        cita_datetime = timezone.make_aware(
+                            timezone.datetime.combine(cita.fecha, cita.hora)
+                        )
+                        # Calcular diferencia
+                        tiempo_diff = historia.fecha_registro - cita_datetime
+                        # Convertir a horas
+                        tiempo_horas = tiempo_diff.total_seconds() / 3600
+                        tiempos_lista.append(tiempo_horas)
+                    except Exception as e:
+                        # Si hay error en una historia, continuar con las demás
+                        continue
+            
+            # Calcular promedio
+            tiempo_promedio_horas = sum(tiempos_lista) / len(tiempos_lista) if tiempos_lista else 0
+            
+            return Response({
+                "tiempo_promedio_horas": round(tiempo_promedio_horas, 2),
+                "tiempo_promedio_dias": round(tiempo_promedio_horas / 24, 2),
+                "total_historias_analizadas": len(tiempos_lista)
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({
+                "error": str(e),
+                "tiempo_promedio_horas": 0,
+                "tiempo_promedio_dias": 0,
+                "total_historias_analizadas": 0
+            }, status=status.HTTP_200_OK)
+
+
+class AuditoriaHistoriasView(APIView):
+    """
+    Últimos 10 accesos a la tabla Historias Clínicas.
+    """
+    permission_classes = [EsEmpleadoAutenticado]
+
+    def get(self, request):
+        ultimos_accesos = (
+            AuditoriaAcceso.objects.filter(tabla_afectada="Historias_Clinicas")
+            .select_related("empleado")
+            .order_by("-fecha_evento")[:10]
+        )
+        
+        data = [
+            {
+                "fecha_evento": acceso.fecha_evento.isoformat(),
+                "accion": acceso.accion,
+                "empleado": acceso.empleado.nom_emp if acceso.empleado else "Sistema",
+                "rol": acceso.empleado.rol if acceso.empleado else "N/A",
+                "ip_origen": acceso.ip_origen
+            }
+            for acceso in ultimos_accesos
+        ]
+        
+        return Response(data, status=status.HTTP_200_OK)
+
+
+class DepartamentosCompartidosView(APIView):
+    """
+    Departamentos que comparten equipamiento con otra sede.
+    """
+    permission_classes = [EsEmpleadoAutenticado]
+
+    def get(self, request):
+        # Obtener todos los equipos y agruparlos por tipo
+        equipos = Equipamiento.objects.select_related("depto", "depto__sede").all()
+        
+        equipos_por_tipo = {}
+        for equipo in equipos:
+            tipo = equipo.nom_eq.split(" - ")[0] if " - " in equipo.nom_eq else equipo.nom_eq
+            
+            if tipo not in equipos_por_tipo:
+                equipos_por_tipo[tipo] = []
+            
+            equipos_por_tipo[tipo].append({
+                "depto_id": equipo.depto_id,
+                "depto_nombre": equipo.depto.nom_dept,
+                "sede_nombre": equipo.depto.sede.nom_sede,
+                "sede_id": equipo.depto.sede_id
+            })
+        
+        # Encontrar tipos de equipamiento que existen en múltiples sedes
+        compartidos = {}
+        for tipo, equipos_list in equipos_por_tipo.items():
+            sedes_unicas = set(e["sede_id"] for e in equipos_list)
+            if len(sedes_unicas) > 1:
+                compartidos[tipo] = equipos_list
+        
+        return Response(compartidos, status=status.HTTP_200_OK)
+
+
+class PacientesPorEnfermedadSedeView(APIView):
+    """
+    Total de pacientes atendidos por enfermedad y por sede.
+    """
+    permission_classes = [EsEmpleadoAutenticado]
+
+    def get(self, request):
+        historias = (
+            HistoriaClinica.objects.select_related("sede")
+            .values("diagnostico", "sede__nom_sede", "sede_id")
+            .annotate(total_pacientes=Count("paciente_id", distinct=True))
+            .order_by("-total_pacientes")
+        )
+        
+        data = [
+            {
+                "enfermedad": h["diagnostico"],
+                "sede": h["sede__nom_sede"],
+                "sede_id": h["sede_id"],
+                "total_pacientes": h["total_pacientes"]
+            }
+            for h in historias
+        ]
+        
+        return Response(data, status=status.HTTP_200_OK)
+
+
+class HistoriasClinicasReplicadasView(APIView):
+    """
+    Vista consolidada de historias clínicas replicadas entre todas las sedes.
+    """
+    permission_classes = [EsEmpleadoAutenticado]
+
+    def get(self, request):
+        # Pacientes que tienen historias clínicas en múltiples sedes
+        pacientes_multisede = (
+            HistoriaClinica.objects.values("paciente_id", "paciente__nom_pac")
+            .annotate(total_sedes=Count("sede_id", distinct=True), total_historias=Count("id"))
+            .filter(total_sedes__gt=1)
+            .order_by("-total_historias")
+        )
+        
+        data = []
+        for paciente in pacientes_multisede:
+            historias_por_sede = (
+                HistoriaClinica.objects.filter(paciente_id=paciente["paciente_id"])
+                .values("sede__nom_sede", "sede_id", "fecha_registro", "diagnostico")
+                .order_by("sede_id", "-fecha_registro")
+            )
+            
+            data.append({
+                "paciente_id": paciente["paciente_id"],
+                "nombre_paciente": paciente["paciente__nom_pac"],
+                "total_sedes": paciente["total_sedes"],
+                "total_historias": paciente["total_historias"],
+                "historias_por_sede": list(historias_por_sede)
+            })
+        
+        return Response(data, status=status.HTTP_200_OK)
+

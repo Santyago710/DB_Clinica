@@ -3,12 +3,15 @@ import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
+  PointElement,
+  LineElement,
   BarElement,
+  ArcElement,
   Title,
   Tooltip,
   Legend,
 } from "chart.js";
-import { Bar } from "react-chartjs-2";
+import { Bar, Line, Pie, Doughnut } from "react-chartjs-2";
 import { 
   PacientesPage, 
   CitasPage, 
@@ -25,7 +28,7 @@ import { API_BASE_URL } from "./apiConfig";
 
 //console.log("API_BASE_URL =>", API_BASE_URL);
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend);
 
 function App() {
   // Estado de autenticación
@@ -148,6 +151,16 @@ function App() {
   const [datos, setDatos] = useState([]);
   const [cargandoMetricas, setCargandoMetricas] = useState(false);
   const [errorMetricas, setErrorMetricas] = useState(null);
+
+  // Estados para métricas avanzadas
+  const [medicosConsultas, setMedicosConsultas] = useState([]);
+  const [tiempoPromedio, setTiempoPromedio] = useState(null);
+  const [auditoriaHistorias, setAuditoriaHistorias] = useState([]);
+  const [departamentosCompartidos, setDepartamentosCompartidos] = useState({});
+  const [pacientesEnfermedad, setPacientesEnfermedad] = useState([]);
+  const [historiasReplicadas, setHistoriasReplicadas] = useState([]);
+  const [cargandoMetricasAvanzadas, setCargandoMetricasAvanzadas] = useState(false);
+  const [errorMetricasAvanzadas, setErrorMetricasAvanzadas] = useState(null);
 
   // Handler de login
   const handleLogin = async (e) => {
@@ -297,6 +310,82 @@ function App() {
     fetchMetricas();
   }, [empleado, paginaActual]); // 👈 ahora depende también de paginaActual
 
+  // Cargar métricas avanzadas cuando la página es "metricas_avanzadas"
+  useEffect(() => {
+    if (!empleado || paginaActual !== "metricas_avanzadas") {
+      return;
+    }
+
+    const fetchMetricasAvanzadas = async () => {
+      setCargandoMetricasAvanzadas(true);
+      setErrorMetricasAvanzadas(null);
+
+      try {
+        const headers = {
+          "Content-Type": "application/json",
+          "X-Empleado-Id": String(empleado.id),
+        };
+
+        console.log("Headers enviados:", headers);
+        console.log("Empleado ID:", empleado.id);
+
+        const [
+          respMedicos,
+          respTiempo,
+          respAuditoria,
+          respDepartamentos,
+          respPacientes,
+          respHistorias
+        ] = await Promise.all([
+          fetch(`${API_BASE_URL}/api/metricas/medicos-mas-consultas/`, { headers, method: "GET" }),
+          fetch(`${API_BASE_URL}/api/metricas/tiempo-cita-diagnostico/`, { headers, method: "GET" }),
+          fetch(`${API_BASE_URL}/api/metricas/auditoria-historias/`, { headers, method: "GET" }),
+          fetch(`${API_BASE_URL}/api/metricas/departamentos-compartidos/`, { headers, method: "GET" }),
+          fetch(`${API_BASE_URL}/api/metricas/pacientes-por-enfermedad-sede/`, { headers, method: "GET" }),
+          fetch(`${API_BASE_URL}/api/metricas/historias-replicadas/`, { headers, method: "GET" }),
+        ]);
+
+        // Validar respuestas
+        const responses = [
+          { name: "Médicos", resp: respMedicos },
+          { name: "Tiempo", resp: respTiempo },
+          { name: "Auditoría", resp: respAuditoria },
+          { name: "Departamentos", resp: respDepartamentos },
+          { name: "Pacientes", resp: respPacientes },
+          { name: "Historias", resp: respHistorias },
+        ];
+
+        for (const { name, resp } of responses) {
+          if (!resp.ok) {
+            const errorData = await resp.json().catch(() => ({}));
+            console.error(`Error en ${name}:`, resp.status, errorData);
+            throw new Error(`Error en ${name}: ${resp.status} - ${errorData.detail || resp.statusText}`);
+          }
+        }
+
+        const dataMedicos = await respMedicos.json();
+        const dataTiempo = await respTiempo.json();
+        const dataAuditoria = await respAuditoria.json();
+        const dataDepartamentos = await respDepartamentos.json();
+        const dataPacientes = await respPacientes.json();
+        const dataHistorias = await respHistorias.json();
+
+        setMedicosConsultas(dataMedicos);
+        setTiempoPromedio(dataTiempo);
+        setAuditoriaHistorias(dataAuditoria);
+        setDepartamentosCompartidos(dataDepartamentos);
+        setPacientesEnfermedad(dataPacientes);
+        setHistoriasReplicadas(dataHistorias);
+      } catch (err) {
+        setErrorMetricasAvanzadas(err.message);
+      } finally {
+        setCargandoMetricasAvanzadas(false);
+      }
+    };
+
+    fetchMetricasAvanzadas();
+  }, [empleado, paginaActual]);
+
   // Cargar analítica cuando la página es "analitica"
   useEffect(() => {
     if (!empleado || paginaActual !== "analitica") {
@@ -406,6 +495,7 @@ function App() {
         { id: "inicio", label: "Inicio", icon: "🏠" },
         { id: "analitica", label: "Analítica Médica", icon: "📈" },
         { id: "metricas", label: "Métricas", icon: "📊" },
+        { id: "metricas_avanzadas", label: "Métricas Avanzadas", icon: "📉" },
         { id: "sedes", label: "Sedes Hospitalarias", icon: "🏥" },
         { id: "departamentos", label: "Departamentos", icon: "🏢" },
         { id: "empleados", label: "Gestionar Empleados", icon: "👥" },
@@ -421,6 +511,7 @@ function App() {
         { id: "inicio", label: "Inicio", icon: "🏠" },
         { id: "analitica", label: "Analítica Médica", icon: "📈" },
         { id: "metricas", label: "Reportes", icon: "📊" },
+        { id: "metricas_avanzadas", label: "Métricas Avanzadas", icon: "📉" },
         { id: "pacientes", label: "Mis Pacientes", icon: "🩺" },
         { id: "citas", label: "Citas", icon: "📅" },
         { id: "historias", label: "Historias Clínicas", icon: "📋" },
@@ -1075,6 +1166,413 @@ function App() {
                             ))}
                           </tbody>
                         </table>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Página de Métricas Avanzadas */}
+            {paginaActual === "metricas_avanzadas" && (
+              <div style={{ padding: "2rem" }}>
+                <h2>📊 Métricas Avanzadas del Sistema</h2>
+
+                {cargandoMetricasAvanzadas && (
+                  <div style={{ textAlign: "center", padding: "2rem" }}>
+                    <p>Cargando métricas avanzadas...</p>
+                  </div>
+                )}
+
+                {errorMetricasAvanzadas && (
+                  <div style={{
+                    backgroundColor: "#ffebee",
+                    border: "1px solid #ef5350",
+                    color: "#c62828",
+                    padding: "1rem",
+                    borderRadius: "4px",
+                    marginBottom: "2rem"
+                  }}>
+                    Error al cargar métricas: {errorMetricasAvanzadas}
+                  </div>
+                )}
+
+                {!cargandoMetricasAvanzadas && !errorMetricasAvanzadas && (
+                  <>
+                    {/* 1. Médicos con más consultas */}
+                    {medicosConsultas.length > 0 && (
+                      <div style={{
+                        backgroundColor: "#f5f5f5",
+                        padding: "2rem",
+                        borderRadius: "8px",
+                        marginBottom: "2rem",
+                        boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
+                      }}>
+                        <h3 style={{ color: "#1976d2", marginBottom: "1.5rem" }}>
+                          👨‍⚕️ Médicos con Mayor Número de Consultas (Última Semana)
+                        </h3>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2rem" }}>
+                          <div>
+                            {medicosConsultas.length > 0 && (
+                              <Bar
+                                data={{
+                                  labels: medicosConsultas.map(m => m.nombre_medico),
+                                  datasets: [{
+                                    label: "Total de Consultas",
+                                    data: medicosConsultas.map(m => m.total_consultas),
+                                    backgroundColor: [
+                                      "#1976d2", "#388e3c", "#f57c00", "#7b1fa2",
+                                      "#c62828", "#00897b", "#6f5c00", "#283593"
+                                    ],
+                                    borderRadius: 8,
+                                    borderSkipped: false,
+                                  }]
+                                }}
+                                options={{
+                                  indexAxis: "y",
+                                  responsive: true,
+                                  plugins: {
+                                    legend: { display: false },
+                                  },
+                                  scales: {
+                                    x: { beginAtZero: true }
+                                  }
+                                }}
+                              />
+                            )}
+                          </div>
+                          <div>
+                            <table style={{
+                              width: "100%",
+                              borderCollapse: "collapse",
+                              backgroundColor: "white"
+                            }}>
+                              <thead>
+                                <tr style={{ backgroundColor: "#1976d2", color: "white" }}>
+                                  <th style={{ padding: "0.75rem", textAlign: "left", borderBottom: "2px solid #1976d2" }}>
+                                    Médico
+                                  </th>
+                                  <th style={{ padding: "0.75rem", textAlign: "right", borderBottom: "2px solid #1976d2" }}>
+                                    Consultas
+                                  </th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {medicosConsultas.map((item, idx) => (
+                                  <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? "#f9f9f9" : "white" }}>
+                                    <td style={{ padding: "0.75rem", borderBottom: "1px solid #ddd" }}>
+                                      {item.nombre_medico}
+                                    </td>
+                                    <td style={{
+                                      padding: "0.75rem",
+                                      textAlign: "right",
+                                      borderBottom: "1px solid #ddd",
+                                      fontWeight: "bold",
+                                      color: "#1976d2"
+                                    }}>
+                                      {item.total_consultas}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 2. Tiempo promedio cita - diagnóstico */}
+                    {tiempoPromedio && (
+                      <div style={{
+                        backgroundColor: "#f5f5f5",
+                        padding: "2rem",
+                        borderRadius: "8px",
+                        marginBottom: "2rem",
+                        boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
+                      }}>
+                        <h3 style={{ color: "#388e3c", marginBottom: "1.5rem" }}>
+                          ⏱️ Tiempo Promedio: Cita → Diagnóstico
+                        </h3>
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1.5rem" }}>
+                          <div style={{
+                            backgroundColor: "white",
+                            padding: "1.5rem",
+                            borderRadius: "8px",
+                            textAlign: "center",
+                            border: "3px solid #388e3c"
+                          }}>
+                            <div style={{ fontSize: "2.5rem", fontWeight: "bold", color: "#388e3c" }}>
+                              {tiempoPromedio.tiempo_promedio_horas}h
+                            </div>
+                            <div style={{ color: "#666", marginTop: "0.5rem", fontSize: "0.9rem" }}>
+                              Horas Promedio
+                            </div>
+                          </div>
+                          <div style={{
+                            backgroundColor: "white",
+                            padding: "1.5rem",
+                            borderRadius: "8px",
+                            textAlign: "center",
+                            border: "3px solid #1976d2"
+                          }}>
+                            <div style={{ fontSize: "2.5rem", fontWeight: "bold", color: "#1976d2" }}>
+                              {tiempoPromedio.tiempo_promedio_dias}d
+                            </div>
+                            <div style={{ color: "#666", marginTop: "0.5rem", fontSize: "0.9rem" }}>
+                              Días Promedio
+                            </div>
+                          </div>
+                          <div style={{
+                            backgroundColor: "white",
+                            padding: "1.5rem",
+                            borderRadius: "8px",
+                            textAlign: "center",
+                            border: "3px solid #f57c00"
+                          }}>
+                            <div style={{ fontSize: "2.5rem", fontWeight: "bold", color: "#f57c00" }}>
+                              {tiempoPromedio.total_historias_analizadas}
+                            </div>
+                            <div style={{ color: "#666", marginTop: "0.5rem", fontSize: "0.9rem" }}>
+                              Historias Analizadas
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 3. Auditoría de Historias Clínicas */}
+                    {auditoriaHistorias.length > 0 && (
+                      <div style={{
+                        backgroundColor: "#f5f5f5",
+                        padding: "2rem",
+                        borderRadius: "8px",
+                        marginBottom: "2rem",
+                        boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
+                      }}>
+                        <h3 style={{ color: "#d32f2f", marginBottom: "1.5rem" }}>
+                          🔍 Últimos 10 Accesos a Historias Clínicas
+                        </h3>
+                        <table style={{
+                          width: "100%",
+                          borderCollapse: "collapse",
+                          backgroundColor: "white"
+                        }}>
+                          <thead>
+                            <tr style={{ backgroundColor: "#d32f2f", color: "white" }}>
+                              <th style={{ padding: "0.75rem", textAlign: "left", borderBottom: "2px solid #d32f2f" }}>
+                                Fecha/Hora
+                              </th>
+                              <th style={{ padding: "0.75rem", textAlign: "left", borderBottom: "2px solid #d32f2f" }}>
+                                Acción
+                              </th>
+                              <th style={{ padding: "0.75rem", textAlign: "left", borderBottom: "2px solid #d32f2f" }}>
+                                Empleado
+                              </th>
+                              <th style={{ padding: "0.75rem", textAlign: "left", borderBottom: "2px solid #d32f2f" }}>
+                                Rol
+                              </th>
+                              <th style={{ padding: "0.75rem", textAlign: "left", borderBottom: "2px solid #d32f2f" }}>
+                                IP Origen
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {auditoriaHistorias.map((item, idx) => (
+                              <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? "#f9f9f9" : "white" }}>
+                                <td style={{ padding: "0.75rem", borderBottom: "1px solid #ddd", fontSize: "0.85rem" }}>
+                                  {new Date(item.fecha_evento).toLocaleString()}
+                                </td>
+                                <td style={{
+                                  padding: "0.75rem",
+                                  borderBottom: "1px solid #ddd",
+                                  fontWeight: "bold",
+                                  color: item.accion === "CREATE" ? "#4caf50" : item.accion === "UPDATE" ? "#ff9800" : "#d32f2f"
+                                }}>
+                                  {item.accion}
+                                </td>
+                                <td style={{ padding: "0.75rem", borderBottom: "1px solid #ddd" }}>
+                                  {item.empleado}
+                                </td>
+                                <td style={{
+                                  padding: "0.75rem",
+                                  borderBottom: "1px solid #ddd",
+                                  fontWeight: "bold",
+                                  color: "#1976d2"
+                                }}>
+                                  {item.rol}
+                                </td>
+                                <td style={{ padding: "0.75rem", borderBottom: "1px solid #ddd", fontSize: "0.85rem", fontFamily: "monospace" }}>
+                                  {item.ip_origen}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+
+                    {/* 4. Departamentos que comparten equipamiento */}
+                    {Object.keys(departamentosCompartidos).length > 0 && (
+                      <div style={{
+                        backgroundColor: "#f5f5f5",
+                        padding: "2rem",
+                        borderRadius: "8px",
+                        marginBottom: "2rem",
+                        boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
+                      }}>
+                        <h3 style={{ color: "#7b1fa2", marginBottom: "1.5rem" }}>
+                          🔗 Equipamiento Compartido Entre Sedes
+                        </h3>
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "1.5rem" }}>
+                          {Object.entries(departamentosCompartidos).map(([tipo, equipos], idx) => (
+                            <div key={tipo} style={{
+                              backgroundColor: "white",
+                              padding: "1.5rem",
+                              borderRadius: "8px",
+                              border: "2px solid #7b1fa2"
+                            }}>
+                              <h4 style={{ color: "#7b1fa2", marginBottom: "1rem", marginTop: 0 }}>
+                                {tipo}
+                              </h4>
+                              <ul style={{ marginLeft: "1.5rem", color: "#333" }}>
+                                {equipos.map((equipo, i) => (
+                                  <li key={i} style={{ marginBottom: "0.5rem" }}>
+                                    <strong>{equipo.depto_nombre}</strong> ({equipo.sede_nombre})
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 5. Pacientes por enfermedad y sede */}
+                    {pacientesEnfermedad.length > 0 && (
+                      <div style={{
+                        backgroundColor: "#f5f5f5",
+                        padding: "2rem",
+                        borderRadius: "8px",
+                        marginBottom: "2rem",
+                        boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
+                      }}>
+                        <h3 style={{ color: "#00897b", marginBottom: "1.5rem" }}>
+                          🏥 Pacientes Atendidos por Enfermedad y Sede
+                        </h3>
+                        <table style={{
+                          width: "100%",
+                          borderCollapse: "collapse",
+                          backgroundColor: "white"
+                        }}>
+                          <thead>
+                            <tr style={{ backgroundColor: "#00897b", color: "white" }}>
+                              <th style={{ padding: "0.75rem", textAlign: "left", borderBottom: "2px solid #00897b" }}>
+                                Enfermedad/Diagnóstico
+                              </th>
+                              <th style={{ padding: "0.75rem", textAlign: "left", borderBottom: "2px solid #00897b" }}>
+                                Sede
+                              </th>
+                              <th style={{ padding: "0.75rem", textAlign: "center", borderBottom: "2px solid #00897b" }}>
+                                Total Pacientes
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {pacientesEnfermedad.slice(0, 15).map((item, idx) => (
+                              <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? "#f9f9f9" : "white" }}>
+                                <td style={{ padding: "0.75rem", borderBottom: "1px solid #ddd" }}>
+                                  {item.enfermedad}
+                                </td>
+                                <td style={{ padding: "0.75rem", borderBottom: "1px solid #ddd" }}>
+                                  {item.sede}
+                                </td>
+                                <td style={{
+                                  padding: "0.75rem",
+                                  borderBottom: "1px solid #ddd",
+                                  textAlign: "center",
+                                  fontWeight: "bold",
+                                  color: "#00897b",
+                                  fontSize: "1.1rem"
+                                }}>
+                                  {item.total_pacientes}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+
+                    {/* 6. Historias clínicas replicadas */}
+                    {historiasReplicadas.length > 0 && (
+                      <div style={{
+                        backgroundColor: "#f5f5f5",
+                        padding: "2rem",
+                        borderRadius: "8px",
+                        marginBottom: "2rem",
+                        boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
+                      }}>
+                        <h3 style={{ color: "#6f5c00", marginBottom: "1.5rem" }}>
+                          📋 Historias Clínicas Replicadas Entre Sedes
+                        </h3>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "1.5rem" }}>
+                          {historiasReplicadas.map((paciente, idx) => (
+                            <div key={idx} style={{
+                              backgroundColor: "white",
+                              padding: "1.5rem",
+                              borderRadius: "8px",
+                              border: "2px solid #6f5c00",
+                              marginBottom: "1rem"
+                            }}>
+                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+                                <h4 style={{ margin: 0, color: "#333" }}>
+                                  {paciente.nombre_paciente}
+                                </h4>
+                                <div style={{
+                                  display: "inline-block",
+                                  backgroundColor: "#6f5c00",
+                                  color: "white",
+                                  padding: "0.5rem 1rem",
+                                  borderRadius: "4px",
+                                  fontWeight: "bold"
+                                }}>
+                                  {paciente.total_sedes} sedes • {paciente.total_historias} registros
+                                </div>
+                              </div>
+                              <div style={{ marginLeft: "1rem" }}>
+                                {paciente.historias_por_sede.map((historia, i) => (
+                                  <div key={i} style={{
+                                    backgroundColor: "#f9f9f9",
+                                    padding: "0.75rem",
+                                    marginBottom: "0.5rem",
+                                    borderLeft: "4px solid #6f5c00",
+                                    borderRadius: "4px"
+                                  }}>
+                                    <strong style={{ color: "#6f5c00" }}>
+                                      {historia.sede_nombre}
+                                    </strong>
+                                    <div style={{ color: "#666", fontSize: "0.9rem", marginTop: "0.25rem" }}>
+                                      <span>📅 {new Date(historia.fecha_registro).toLocaleDateString()} • </span>
+                                      <span>🔬 {historia.diagnostico}</span>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {historiasReplicadas.length === 0 && medicosConsultas.length === 0 && (
+                      <div style={{
+                        textAlign: "center",
+                        padding: "2rem",
+                        backgroundColor: "white",
+                        borderRadius: "8px",
+                        color: "#999"
+                      }}>
+                        <p>No hay datos disponibles en este momento.</p>
                       </div>
                     )}
                   </>
