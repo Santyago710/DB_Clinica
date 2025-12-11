@@ -21,6 +21,12 @@ from his.views import (
     UtilizacionEquipamientoView,
     IndicesAtencionView,
     ResumenAnaliticaView,
+    MedicosConMasConsultasView,
+    TiempoPromedioCitaDiagnosticoView,
+    AuditoriaHistoriasView,
+    DepartamentosCompartidosView,
+    PacientesPorEnfermedadSedeView,
+    HistoriasClinicasReplicadasView,
 )
 
 
@@ -81,4 +87,36 @@ urlpatterns = [
         ResumenAnaliticaView.as_view(),
         name="resumen-analitica",
     ),
+    # Nuevas métricas avanzadas
+    path(
+        "api/metricas/medicos-mas-consultas/",
+        MedicosConMasConsultasView.as_view(),
+        name="medicos-mas-consultas",
+    ),
+    path(
+        "api/metricas/tiempo-cita-diagnostico/",
+        TiempoPromedioCitaDiagnosticoView.as_view(),
+        name="tiempo-cita-diagnostico",
+    ),
+    path(
+        "api/metricas/auditoria-historias/",
+        AuditoriaHistoriasView.as_view(),
+        name="auditoria-historias",
+    ),
+    path(
+        "api/metricas/departamentos-compartidos/",
+        DepartamentosCompartidosView.as_view(),
+        name="departamentos-compartidos",
+    ),
+    path(
+        "api/metricas/pacientes-por-enfermedad-sede/",
+        PacientesPorEnfermedadSedeView.as_view(),
+        name="pacientes-por-enfermedad-sede",
+    ),
+    path(
+        "api/metricas/historias-replicadas/",
+        HistoriasClinicasReplicadasView.as_view(),
+        name="historias-replicadas",
+    ),
 ]
+
