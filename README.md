@@ -86,47 +86,45 @@ Asegúrate de tener instalados:
 git clone https://github.com/Santyago710/DB_Clinica.git
 cd DB_Clinica
 ```
-###Copia los archivos de entorno y ajústalos según tu configuración:
+Copia los archivos de entorno y ajústalos según tu configuración:
 ```
 cp .env.dev .env
 cp .env2.dev .env2
 ```
 
-Ejecutar con Docke
+### 🐋 Ejecutar con Docker
 ```
 docker compose up --build
 ```
 
 Este comando levanta:
 
-=Backend
-=Frontend
-=Base de datos
-=Servicios auxiliares necesarios
+= Backend
+= Frontend
+= Base de datos
+= Servicios auxiliares necesarios
 
 Una vez iniciado, podrás acceder al sistema desde el navegador según los puertos configurados.
 
 
-DATOS DE PRUEBA (SEED DATA)
+### 🌿 DATOS DE PRUEBA (SEED DATA)
 
 El proyecto incluye datos de prueba para facilitar:
 
-Pruebas funcionales
+- Pruebas funcionales
 
-Validación de endpoints
+- Validación de endpoints
 
-Simulación de flujos reales
+- Simulación de flujos reales
 
-Consultar el archivo SEED_DATA.md para conocer el procedimiento de carga.
+- Consultar el archivo SEED_DATA.md para conocer el procedimiento de carga.
 
-Flujo recomendado:
+## 📁 Archivos del Proyecto
+- **Script de datos de prueba:** [seed_data.py](https://github.com/Santyago710/DB_Clinica/blob/master/backend/his/management/commands/seed_data.py)
 
-Levantar el sistema
-
-Ejecutar pruebas del backend
-
-Probar endpoints con Postman o Insomnia
-
-Validar flujos completos desde el frontend
-
-El script quick_test.sh puede utilizarse para verificaciones rápidas.
+### Flujo recomendado:
+- Levantar el sistema
+- Ejecutar pruebas del backend
+- Probar endpoints con Postman o Insomnia
+- Validar flujos completos desde el frontend
+- El script quick_test.sh puede utilizarse para verificaciones rápidas.
