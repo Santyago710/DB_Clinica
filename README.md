@@ -20,7 +20,7 @@ El repositorio integra **frontend, backend, base de datos y configuración de en
 ---
 
 ## 🧱 Estructura del proyecto
-
+```
 DB_Clinica/
 │
 ├── backend/ # Lógica del servidor y API
@@ -38,7 +38,7 @@ DB_Clinica/
 │
 ├── quick_test.sh # Script de pruebas rápidas
 └── README.md # Documentación principal
-
+```
 
 
 
